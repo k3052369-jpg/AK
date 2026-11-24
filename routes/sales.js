@@ -135,8 +135,13 @@ router.post('/', async (req, res) => {
     await conn.beginTransaction();
 
     const { product_id, quantity, unit_price, customer_name, notes } = req.body;
+    const productId = Number(product_id);
+    const saleQuantity = Number(quantity);
+    const saleUnitPrice = Number(unit_price);
 
-    if (!product_id || !quantity || !unit_price) {
+    if (!Number.isInteger(productId) || productId <= 0 ||
+        !Number.isInteger(saleQuantity) || saleQuantity <= 0 ||
+        !Number.isFinite(saleUnitPrice) || saleUnitPrice <= 0) {
       await conn.rollback();
       conn.release();
       return res.status(400).json({ success: false, message: 'بەرهەم، بڕ و نرخ پێویستن' });
@@ -144,8 +149,8 @@ router.post('/', async (req, res) => {
 
     // Check stock
     const [productRows] = await conn.query(
-      'SELECT id, name, quantity FROM products WHERE id = ? AND is_active = 1',
-      [product_id]
+      'SELECT id, name, quantity FROM products WHERE id = ? AND is_active = 1 FOR UPDATE',
+      [productId]
     );
 
     if (productRows.length === 0) {
@@ -155,7 +160,7 @@ router.post('/', async (req, res) => {
     }
 
     const product = productRows[0];
-    if (product.quantity < parseInt(quantity)) {
+    if (Number(product.quantity) < saleQuantity) {
       await conn.rollback();
       conn.release();
       return res.status(400).json({
@@ -168,12 +173,12 @@ router.post('/', async (req, res) => {
     const [result] = await conn.query(`
       INSERT INTO sales (product_id, quantity, unit_price, customer_name, notes)
       VALUES (?, ?, ?, ?, ?)
-    `, [product_id, parseInt(quantity), parseFloat(unit_price), customer_name || null, notes || null]);
+    `, [productId, saleQuantity, saleUnitPrice, customer_name || null, notes || null]);
 
     // Deduct stock
     await conn.query(
       'UPDATE products SET quantity = quantity - ? WHERE id = ?',
-      [parseInt(quantity), product_id]
+      [saleQuantity, productId]
     );
 
     await conn.commit();
