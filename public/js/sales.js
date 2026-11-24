@@ -118,7 +118,7 @@ async function loadProductsForSaleModal() {
     if (!sel || !json.success) return;
     sel.innerHTML = '<option value="">-- بەرهەمێک هەڵبژێرە --</option>' +
       json.data.map(p => `
-        <option value="${p.id}" data-price="${p.sell_price_iqd}" data-qty="${p.quantity}">
+        <option value="${p.id}" data-price="${p.sell_price_iqd}" data-qty="${p.quantity}" ${Number(p.quantity) <= 0 ? 'disabled' : ''}>
           ${escHtml(p.name)}${p.part_number ? ` (${p.part_number})` : ''} — مەخزەن: ${p.quantity}
         </option>
       `).join('');
@@ -128,8 +128,19 @@ async function loadProductsForSaleModal() {
       const opt = this.selectedOptions[0];
       if (opt && opt.dataset.price) {
         document.getElementById('saleUnitPrice').value = opt.dataset.price;
+        const quantityInput = document.getElementById('saleQuantity');
+        quantityInput.max = opt.dataset.qty;
+        quantityInput.value = 1;
+        const stockHint = document.getElementById('saleStockHint');
+        if (stockHint) stockHint.textContent = `لە مەخزەن: ${opt.dataset.qty} دانە`;
+        updateSaleTotal();
+      } else {
+        const stockHint = document.getElementById('saleStockHint');
+        if (stockHint) stockHint.textContent = '';
       }
     };
+    document.getElementById('saleQuantity').oninput = updateSaleTotal;
+    document.getElementById('saleUnitPrice').oninput = updateSaleTotal;
   } catch (err) {
     console.error('Error loading products for sale modal:', err);
   }
@@ -138,27 +149,47 @@ async function loadProductsForSaleModal() {
 // ─────────────────────────────────────────────────────────────
 // Open the "Add Sale" modal
 // ─────────────────────────────────────────────────────────────
-function openAddSaleModal() {
+async function openAddSaleModal() {
+  await loadProductsForSaleModal();
   document.getElementById('saleProductId').value    = '';
   document.getElementById('saleQuantity').value     = 1;
+  document.getElementById('saleQuantity').removeAttribute('max');
   document.getElementById('saleUnitPrice').value    = '';
   document.getElementById('saleCustomerName').value = '';
   document.getElementById('saleNotes').value        = '';
+  const stockHint = document.getElementById('saleStockHint');
+  if (stockHint) stockHint.textContent = '';
+  updateSaleTotal();
   openModal('addSaleModal');
+}
+
+function updateSaleTotal() {
+  const quantity = Number(document.getElementById('saleQuantity')?.value || 0);
+  const unitPrice = Number(document.getElementById('saleUnitPrice')?.value || 0);
+  const totalElement = document.getElementById('saleTotalPreview');
+  if (totalElement) totalElement.textContent = (quantity * unitPrice).toLocaleString();
 }
 
 // ─────────────────────────────────────────────────────────────
 // Submit the new sale
 // ─────────────────────────────────────────────────────────────
 async function submitSale() {
-  const product_id    = document.getElementById('saleProductId').value;
-  const quantity      = document.getElementById('saleQuantity').value;
-  const unit_price    = document.getElementById('saleUnitPrice').value;
+  const productSelect = document.getElementById('saleProductId');
+  const product_id    = productSelect.value;
+  const quantity      = Number(document.getElementById('saleQuantity').value);
+  const unit_price    = Number(document.getElementById('saleUnitPrice').value);
   const customer_name = document.getElementById('saleCustomerName').value;
   const notes         = document.getElementById('saleNotes').value;
 
-  if (!product_id || !quantity || !unit_price) {
+  if (!product_id || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(unit_price) || unit_price <= 0) {
     showToast('تکایە بەرهەم، بڕ و نرخ پڕ بکەرەوە', 'error');
+    return;
+  }
+
+  const selectedOption = productSelect.selectedOptions[0];
+  const availableStock = Number(selectedOption?.dataset.qty || 0);
+  if (quantity > availableStock) {
+    showToast(`بڕی فرۆشتن لە مەخزەن زیاترە؛ تەنها ${availableStock} دانە هەیە`, 'error');
     return;
   }
 
@@ -174,6 +205,7 @@ async function submitSale() {
       closeModal('addSaleModal');
       await loadSalesSummary();
       await loadSales(salesCurrentPage);
+      await loadProductsForSaleModal();
     } else {
       showToast(json.message || 'هەڵەیەک ڕوویدا', 'error');
     }
@@ -195,6 +227,7 @@ async function deleteSale(id) {
       showToast('فرۆشتن سڕایەوە', 'success');
       await loadSalesSummary();
       await loadSales(salesCurrentPage);
+      await loadProductsForSaleModal();
     } else {
       showToast(json.message || 'هەڵەیەک ڕوویدا', 'error');
     }
