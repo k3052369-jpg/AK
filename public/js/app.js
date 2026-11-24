@@ -335,15 +335,18 @@ setInterval(updateDate, 60000);
 function switchPage(page) {
   document.querySelectorAll('.page-section').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  
-  document.getElementById(`page-${page}`).style.display = 'block';
-  document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+
+  const pageEl = document.getElementById(`page-${page}`);
+  if (pageEl) pageEl.style.display = 'block';
+  const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navEl) navEl.classList.add('active');
 
   const titles = {
     dashboard: '📊 داشبۆرد',
-    products: '⚙️ بەرهەمەکان',
-    categories: '📁 جۆرەکان',
-    suppliers: '🏢 کۆمپانیاکان'
+    products:  '⚙️ بەرهەمەکان',
+    categories:'📁 جۆرەکان',
+    suppliers: '🏢 کۆمپانیاکان',
+    sales:     '💰 فرۆشتن'
   };
   document.getElementById('pageTitle').textContent = titles[page] || page;
 
@@ -351,6 +354,7 @@ function switchPage(page) {
   else if (page === 'products') loadProducts();
   else if (page === 'categories') loadCategories();
   else if (page === 'suppliers') loadSuppliers();
+  else if (page === 'sales' && typeof initSalesPage === 'function') initSalesPage();
 }
 
 function openReportsPage() {
@@ -922,6 +926,7 @@ function renderProductsTable(products, pagination) {
         <td>
           <div class="btn-group">
             <button class="btn btn-primary btn-icon btn-sm" onclick="editProduct(${p.id})" title="دەستکاریکردن">✏️</button>
+            <button class="btn btn-success btn-icon btn-sm" onclick="showQRCode(${p.id}, \`${escapeHtml(p.name)}\`, \`${escapeHtml(p.part_number || '')}\`)" title="QR کۆد">📱</button>
             <button class="btn btn-danger btn-icon btn-sm" onclick="deleteProduct(${p.id}, '${escapeHtml(p.name)}')" title="سڕینەوە">🗑️</button>
           </div>
         </td>
