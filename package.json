@@ -2,10 +2,11 @@
   "name": "auto-part",
   "version": "1.0.0",
   "description": "Auto Part - سیستەمی بەڕێوەبردنی مەخزەنی پارچەکانی ئۆتۆمۆبێل",
-  "main": "server.js",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "build": "node -e \"console.log('Static frontend and Express server are ready')\"",
     "tunnel": "npx localtunnel --port 3000"
   },
   "dependencies": {
