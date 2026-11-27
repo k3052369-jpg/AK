@@ -347,7 +347,7 @@ function switchPage(page) {
   if (navEl) navEl.classList.add('active');
 
   const titles = {
-    dashboard:            '📊 داشبۆرد (SAFE POS)',
+    dashboard:            '📊 داشبۆرد',
     products:             '⚙️ بەرهەمەکان',
     expiry:               '⏳ بەرهەمە بەسەرچووەکان',
     categories:           '📁 جۆرەکان',

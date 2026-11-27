@@ -9,34 +9,9 @@ let safePosOpenTabs = [{ id: 'main', title: 'سەرەکی', pageId: 'dashboard' 
 
 // Initialize on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
-  initSafePosLiveClock();
   initSafePosLauncher();
   initSafePosExpenses();
 });
-
-// -------------------------------------------------------------
-// Live Kurdish Clock & Header (Matching Screenshot)
-// -------------------------------------------------------------
-function initSafePosLiveClock() {
-  function updateClock() {
-    const now = new Date();
-    const kurdishDays = ['یەک شەممە', 'دوو شەممە', 'سێ شەممە', 'چوار شەممە', 'پێنج شەممە', 'هەینی', 'شەممە'];
-    const dayName = kurdishDays[now.getDay()];
-
-    const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    const dateStr = `${y}-${m}-${d} ${dayName}`;
-
-    const timeEl = document.getElementById('safePosClockTime');
-    const dateEl = document.getElementById('safePosClockDate');
-    if (timeEl) timeEl.textContent = timeStr;
-    if (dateEl) dateEl.textContent = dateStr;
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
-}
 
 function initSafePosLauncher() {
   const dInput = document.getElementById('safeExpenseDate');
