@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Auto Part - سیستەمی بەڕێوەبردنی مەخزەن</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Auto Part">
+  <meta name="mobile-web-app-capable" content="yes">
+  <style>
+    /* Inline critical icons using emoji/text to avoid external CDN */
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-icon">🚗</div>
+        <h2>Auto Part</h2>
+        <div class="login-subtitle">سیستەمی بەڕێوەبردنی مەخزەن</div>
+      </div>
+
+      <div class="login-body">
+        <h3 class="login-title">🔐 چوونەژوورەوە بۆ سیستەم</h3>
+        
+        <div class="login-alert" id="loginAlert" style="display: none;"></div>
+
+        <form id="loginForm" onsubmit="submitLogin(event)">
+          <div class="login-form-group">
+            <label for="loginUsername">ناوی بەکارهێنەر (Username)</label>
+            <div class="input-with-icon">
+              <span class="input-icon">👤</span>
+              <input type="text" id="loginUsername" placeholder="ناوی بەکارهێنەر" required autocomplete="username" value="admin">
+            </div>
+          </div>
+
+          <div class="login-form-group">
+            <label for="loginPassword">وشەی نهێنی (Password)</label>
+            <div class="input-with-icon">
+              <span class="input-icon">🔑</span>
+              <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()" title="پیشاندان / شاردنەوە">👁️</button>
+            </div>
+          </div>
+
+          <button type="submit" class="login-submit-btn" id="loginSubmitBtn">
+            <span>چوونەژوورەوە 🔓</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="login-footer">
+        <span>سیستەمی کۆگای Auto Part &bull; پارێزراوە</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">🚗</div>
+        <div>
+          <h1>Auto Part</h1>
+          <div class="subtitle">سیستەمی بەڕێوەبردنی مەخزەن</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+        <span class="icon">📊</span>
+        <span>داشبۆرد</span>
+      </div>
+      <div class="nav-item" data-page="products" onclick="switchPage('products')">
+        <span class="icon">⚙️</span>
+        <span>بەرهەمەکان</span>
+      </div>
+      <div class="nav-item" data-page="expiry" onclick="switchPage('expiry')">
+        <span class="icon">⏳</span>
+        <span>بەسەرچوون</span>
+      </div>
+      <div class="nav-item" data-page="categories" onclick="switchPage('categories')">
+        <span class="icon">📁</span>
+        <span>جۆرەکان</span>
+      </div>
+      <div class="nav-item" data-page="suppliers" onclick="switchPage('suppliers')">
+        <span class="icon">🏢</span>
+        <span>کۆمپانیاکان</span>
+      </div>
+      <div class="nav-item" data-page="sales" onclick="switchPage('sales')">
+        <span class="icon">💰</span>
+        <span>فرۆشتن</span>
+      </div>
+      <div class="nav-item" data-page="customers" onclick="switchPage('customers')">
+        <span class="icon">👥</span>
+        <span>کڕیار و قەرز</span>
+      </div>
+      <div class="nav-item" data-page="purchases" onclick="switchPage('purchases')">
+        <span class="icon">📥</span>
+        <span>کڕینی کاڵا</span>
+      </div>
+      <div class="nav-item" data-page="expenses" onclick="switchPage('expenses'); if(typeof loadSafeExpenses==='function') loadSafeExpenses();">
+        <span class="icon">💸</span>
+        <span>پارە سەرفکردن</span>
+      </div>
+      <div class="nav-item" data-page="returns" onclick="switchPage('returns')">
+        <span class="icon">↩️</span>
+        <span>گەڕاندنەوە</span>
+      </div>
+      <div class="nav-item" data-page="cash" onclick="switchPage('cash')">
+        <span class="icon">🧾</span>
+        <span>ڕاپۆرتی کاش</span>
+      </div>
+      <div class="nav-item" data-page="settings" onclick="switchPage('settings')">
+        <span class="icon">⚙️</span>
+        <span>ڕێکخستنەکان</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="version">Auto Part v1.0.0</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="topbar-right">
+        <h2 class="page-title" id="pageTitle">📊 داشبۆرد</h2>
+      </div>
+      <div class="topbar-left">
+        <!-- Live Dollar Exchange Rate from AlanChand -->
+        <div class="topbar-rate-card" title="سەرفی دۆلاری ڕاستەوخۆ بەپێی بۆرسەی ئالان چەند (alanchand.com)">
+          <div class="rate-value-wrap">
+            <span>١٠٠$ =</span>
+            <input type="number" id="globalExchangeRate" value="150000" step="250" min="10000" oninput="onGlobalRateChange(this.value)">
+            <span>دینار</span>
+          </div>
+        </div>
+        <button class="topbar-calc-btn" onclick="openModal('quickConverterModal')" title="حاسیبەی خێرای دۆلار بۆ دینار">
+          🧮 حاسیبە
+        </button>
+        <div class="topbar-date" id="topDate">
+          📅 <span id="currentDate"></span>
+        </div>
+        <div class="topbar-user" id="topbarUser">
+          <button
+            type="button"
+            class="account-menu-toggle"
+            id="accountMenuToggle"
+            onclick="toggleAccountMenu(event)"
+            aria-label="هەژماری بەکارهێنەر"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="accountMenu"
+          >
+            <span class="user-info">
+              <span class="name" id="currentUserName">ئەدمین</span>
+              <span class="role" id="currentUserRole">بەڕێوەبەر</span>
+            </span>
+            <span class="user-avatar" id="currentUserAvatar">A</span>
+            <span class="account-menu-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="account-menu" id="accountMenu" role="menu" aria-label="مینیوی هەژمار">
+            <button type="button" class="account-menu-logout" role="menuitem" onclick="handleLogout()">
+              🚪 دەرچوون
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- SAFE POS V6.0.1 Window Title Bar (Screenshot Replica) -->
+    <div class="safe-pos-window-titlebar">
+      <div class="titlebar-left">
+        <div class="titlebar-window-controls">
+          <span class="win-btn win-close" title="داخستن">✕</span>
+          <span class="win-btn win-max" title="گەورەکردن">□</span>
+          <span class="win-btn win-min" title="بچووککردن">_</span>
+        </div>
+        <div class="titlebar-clock" id="safePosLiveClock">
+          <span id="safePosClockTime">10:16:54 PM</span>
+          <span id="safePosClockDate">2026-10-15 پێنج شەممە</span>
+        </div>
+      </div>
+      <div class="titlebar-center">
+        <span class="titlebar-user-badge">👤 Admin</span>
+      </div>
+      <div class="titlebar-right">
+        <div class="titlebar-app-title">SAFE POS V6.0.1 - 0750 246 7632</div>
+      </div>
+    </div>
+
+    <!-- SAFE POS V6.0.1 Dynamic Top Tabs Bar -->
+    <div class="safe-pos-tabs-bar" id="safePosTabsBar">
+      <div class="safe-pos-tab active" data-tab="main" onclick="switchSafePosTab('main')">
+        <span class="tab-close" onclick="closeSafePosTab('main', event)">✕</span>
+        <span>سەرەکی</span>
+      </div>
+    </div>
+
+        <!-- Content Area -->
+    <div class="content">
+      <!-- ========== DASHBOARD PAGE ========== -->
+      <div id="page-dashboard" class="page-section">
+                <!-- SAFE POS V6.0.1 - 30-Module Launcher Grid -->
+        <div class="safe-pos-launcher-container">
+          <div class="safe-pos-launcher-header">
+            <div class="safe-pos-launcher-title">
+              <span>🖥️ بەشەکانی سیستەمی کۆگا و کاشێر (SAFE POS)</span>
+              <span class="safe-pos-launcher-badge">٣٠ بەشی سەرەکی</span>
+            </div>
+          </div>
+
+          <div class="safe-pos-grid">
+            <!-- ROW 1 (All Blue) -->
+            <button type="button" class="safe-pos-card pos-color-blue" onclick="handlePosModule('pos-sell')" title="کاڵا فرۆشتن">
+              <div class="card-icon">🛒</div>
+              <div class="card-label">کاڵا فرۆشتن</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-blue" onclick="handlePosModule('pos-sales-invoices')" title="وەسڵە فرۆشراوەکان">
+              <div class="card-icon">🧾</div>
+              <div class="card-label">وەسڵە فرۆشراوەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-blue" onclick="handlePosModule('pos-cashier-handover')" title="پارەوەرگرتن لە کاشێر">
+              <div class="card-icon">🪙</div>
+              <div class="card-label">پارەوەرگرتن لە کاشێر</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-blue" onclick="handlePosModule('pos-expenses')" title="پارە سەرفکردن">
+              <div class="card-icon">💸</div>
+              <div class="card-label">پارە سەرفکردن</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-blue" onclick="handlePosModule('pos-damaged')" title="بەهەدەرکراوەکان">
+              <div class="card-icon">❌</div>
+              <div class="card-label">بەهەدەرکراوەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-blue" onclick="handlePosModule('pos-shelf-tags')" title="نرخ بۆ سەر ڕەفە">
+              <div class="card-icon">🏷️</div>
+              <div class="card-label">نرخ بۆ سەر ڕەفە</div>
+            </button>
+
+            <!-- ROW 2 (Col 1 Navy, Col 2-6 Green) -->
+            <button type="button" class="safe-pos-card pos-color-navy" onclick="handlePosModule('pos-barcode')" title="دروستکردنی بارکۆد">
+              <div class="card-icon">📊</div>
+              <div class="card-label">دروستکردنی بارکۆد</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-green" onclick="handlePosModule('pos-new-item')" title="ناساندنی کاڵای نوێ">
+              <div class="card-icon">📦</div>
+              <div class="card-label">ناساندنی کاڵای نوێ</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-green" onclick="handlePosModule('pos-items-list')" title="لیستی کاڵاکان">
+              <div class="card-icon">📋</div>
+              <div class="card-label">لیستی کاڵاکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-green" onclick="handlePosModule('pos-purchase-item')" title="کڕینی کاڵا">
+              <div class="card-icon">📄</div>
+              <div class="card-label">کڕینی کاڵا</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-green" onclick="handlePosModule('pos-purchase-invoices')" title="وەسڵەکڕدراوەکان">
+              <div class="card-icon">📑</div>
+              <div class="card-label">وەسڵەکڕدراوەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-green" onclick="handlePosModule('pos-company-debts')" title="قەرزی کۆمپانیاکان">
+              <div class="card-icon">💵</div>
+              <div class="card-label">قەرزی کۆمپانیاکان</div>
+            </button>
+
+            <!-- ROW 3 (Col 1-5 Orange, Col 6 Red) -->
+            <button type="button" class="safe-pos-card pos-color-orange" onclick="handlePosModule('pos-debtors-list')" title="لیستی قەرزدارەکان">
+              <div class="card-icon">👥</div>
+              <div class="card-label">لیستی قەرزدارەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-orange" onclick="handlePosModule('pos-debt-collection')" title="وەرگرتنەوەی قەرز">
+              <div class="card-icon">💳</div>
+              <div class="card-label">وەرگرتنەوەی قەرز</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-orange" onclick="handlePosModule('pos-installment-alerts')" title="ئاگاداری قیست">
+              <div class="card-icon">⚠️</div>
+              <div class="card-label">ئاگاداری قیست</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-orange" onclick="handlePosModule('pos-installment-dash')" title="داشبۆردی قیست">
+              <div class="card-icon">📒</div>
+              <div class="card-label">داشبۆردی قیست</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-orange" onclick="handlePosModule('pos-installment-report')" title="ڕاپۆرتی قیست">
+              <div class="card-icon">📈</div>
+              <div class="card-label">ڕاپۆرتی قیست</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-safe')" title="قاسە">
+              <div class="card-icon">🏦</div>
+              <div class="card-label">قاسە</div>
+            </button>
+
+            <!-- ROW 4 (All Red) -->
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-profits')" title="قازانجەکان">
+              <div class="card-icon">📊</div>
+              <div class="card-label">قازانجەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-expired')" title="بەسەرچووەکان">
+              <div class="card-icon">📅</div>
+              <div class="card-label">بەسەرچووەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-low-stock')" title="کاڵا کەمبووەکان">
+              <div class="card-icon">📉</div>
+              <div class="card-label">کاڵا کەمبووەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-sales-audit')" title="جەردی فرۆشراوەکان">
+              <div class="card-icon">🥧</div>
+              <div class="card-label">جەردی فرۆشراوەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-cash-statement')" title="کشف حساب پارە">
+              <div class="card-icon">🏛️</div>
+              <div class="card-label">کشف حساب پارە</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-customer-statement')" title="کشف حساب کریار">
+              <div class="card-icon">👤</div>
+              <div class="card-label">کشف حساب کریار</div>
+            </button>
+
+            <!-- ROW 5 (Col 1-4 Red, Col 5-6 Brown) -->
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-purchase-statement')" title="کشف حساب کرین">
+              <div class="card-icon">🛒</div>
+              <div class="card-label">کشف حساب کرین</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-purchase-audit')" title="جەردی کڕدراوەکان">
+              <div class="card-icon">📊</div>
+              <div class="card-label">جەردی کڕدراوەکان</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-money-report')" title="ڕاپۆرتی پارە">
+              <div class="card-icon">💰</div>
+              <div class="card-label">ڕاپۆرتی پارە</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-red" onclick="handlePosModule('pos-stocktaking')" title="جەردکردن">
+              <div class="card-icon">📋</div>
+              <div class="card-label">جەردکردن</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-brown" onclick="handlePosModule('pos-system-users')" title="بەکارهێنەری سیستەم">
+              <div class="card-icon">⚙️</div>
+              <div class="card-label">بەکارهێنەری سیستەم</div>
+            </button>
+            <button type="button" class="safe-pos-card pos-color-brown" onclick="handlePosModule('pos-backup')" title="پاشەکەوتی داتاکان">
+              <div class="card-icon">💾</div>
+              <div class="card-label">پاشەکەوتی داتاکان</div>
+            </button>
+          </div>
+        </div>
+        <div class="dashboard-welcome">
+          <div>
+            <div class="dashboard-welcome-label">پوختەی ڕاستەوخۆی مەخزەن</div>
+            <h3>سڵاو، ئەدمین 👋</h3>
+            <p>دۆخی بەرهەمەکان و ئاگادارییەکان لێرە بە چاوکەوتە نمایش دەدرێن.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openInlineStockAlertReport()">
+            📑 بینینی راپۆرتی ستۆک
+          </button>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card blue report-card-interactive" onclick="openDashboardReport('products')" title="ڕاپۆرتی کۆی بەرهەمەکان">
+            <div class="stat-icon">📦</div>
+            <div class="stat-value" id="statTotalProducts">0</div>
+            <div class="stat-label">کۆی بەرهەمەکان</div>
+          </div>
+          <div class="stat-card green report-card-interactive" onclick="openDashboardReport('categories')" title="ڕاپۆرتی جۆرەکان">
+            <div class="stat-icon">📁</div>
+            <div class="stat-value" id="statTotalCategories">0</div>
+            <div class="stat-label">جۆرەکان</div>
+          </div>
+          <div class="stat-card red alert-card-interactive" onclick="openInlineStockAlertReport()" title="کلیک بکە بۆ ڕاپۆرتی ئاگاداری کەمی و نەماوی ستۆک">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-value" id="statStockAlerts">0</div>
+            <div class="stat-label" style="font-weight:700;color:var(--danger)">ئاگاداری مەخزەن (کەمی و نەماو)</div>
+            <div class="stat-subinfo">
+              <span>📉 لە کەمی دایە: <strong id="statLowStock">0</strong></span>
+              <span>🚫 نەماوە: <strong id="statOutOfStock">0</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card blue report-card-interactive" onclick="openDashboardReport('quantity')" title="ڕاپۆرتی کۆی دانەی بەرهەمەکان">
+            <div class="stat-icon">🔢</div>
+            <div class="stat-value" id="statTotalQuantity">0</div>
+            <div class="stat-label">کۆی دانە</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="statTotalValueIQD">0</div>
+            <div class="stat-label">بەهای مەخزەن (دینار)</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon">💵</div>
+            <div class="stat-value" id="statTotalValueUSD">0</div>
+            <div class="stat-label">بەهای مەخزەن (دۆلار)</div>
+          </div>
+        </div>
+
+        <div class="dashboard-overview-grid">
+          <div class="dashboard-panel">
+            <div class="dashboard-panel-header">
+              <div>
+                <span class="dashboard-panel-kicker">بەرهەمەکان بەپێی جۆر</span>
+                <h3>دابەشکردنی جۆرەکان</h3>
+              </div>
+            </div>
+            <div class="category-bars" id="categoryBars">
+              <div class="dashboard-empty">داتاکان باردەکرێن...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-panel dashboard-alert-preview">
+          <div class="dashboard-panel-header">
+            <div>
+              <span class="dashboard-panel-kicker">پێویستی بە پێکردنەوەی ستۆک</span>
+              <h3>گرنگترین ئاگادارییەکان</h3>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="openInlineStockAlertReport()">📋 هەموو ئاگادارییەکان</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>بەرهەم</th>
+                  <th>جۆر</th>
+                  <th>ماوە</th>
+                  <th>کەمترین ستۆک</th>
+                  <th>دۆخ</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardAlertPreviewBody">
+                <tr><td colspan="5" class="dashboard-empty">داتاکان باردەکرێن...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dashboard-panel dashboard-inline-report" id="dashboardStockReport" style="display:none;">
+          <div class="report-print-header">
+            <div class="report-print-company">کۆمپانیای Auto Part</div>
+            <div class="report-print-details">
+              <span>کارمەند: ئەدمین</span>
+              <span id="printReportDate"></span>
+            </div>
+            <h2 id="printReportTitle">راپۆرتی ستۆک</h2>
+          </div>
+          <div class="dashboard-panel-header report-header">
+            <div>
+              <span class="dashboard-panel-kicker">ڕاپۆرتی تەواو</span>
+              <h3 id="dashboardReportTitle">📑 ئاگاداری کەمی و نەماوی ستۆک</h3>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-outline btn-sm" onclick="printDashboardReport()">🖨️ چاپکردن</button>
+              <button class="btn btn-danger btn-sm" onclick="closeInlineStockAlertReport()">✖️ داخستن</button>
+            </div>
+          </div>
+          <div class="dashboard-report-switcher">
+            <button class="dashboard-report-btn active" id="reportBtnStock" onclick="openDashboardReport('stock')">⚠️ راپۆرتی ستۆک</button>
+            <button class="dashboard-report-btn" id="reportBtnProducts" onclick="openDashboardReport('products')">📦 راپۆرتی کۆی بەرهەمەکان</button>
+            <button class="dashboard-report-btn" id="reportBtnQuantity" onclick="openDashboardReport('quantity')">🔢 راپۆرتی کۆی دانە</button>
+            <button class="dashboard-report-btn" id="reportBtnCategories" onclick="openDashboardReport('categories')">📁 هەموو جۆرەکان</button>
+            <button class="dashboard-report-btn" id="reportBtnSuppliers" onclick="openDashboardReport('suppliers')">🏢 هەموو کۆمپانیاکان</button>
+          </div>
+          <div class="alert-report-banner" id="dashboardReportBanner">
+            <div style="font-size:28px;">⚠️</div>
+            <div><strong>ئاگاداری بۆ بەڕێوەبەر:</strong> بەرهەمە ئەم لیستە پێویستیان بە پێکردنەوەی خێرا هەیە لەگەڵ جەختکردنەوەی کەمترین ستۆک.</div>
+          </div>
+          <div class="alert-filter-tabs" id="dashboardStockFilters">
+            <button class="alert-filter-btn active" id="inlineBtnAlertAll" onclick="filterInlineAlertReport('all')">📋 هەموو (<span id="inlineAlertCountAll">0</span>)</button>
+            <button class="alert-filter-btn" id="inlineBtnAlertOut" onclick="filterInlineAlertReport('out')">🚫 نەماوە (<span id="inlineAlertCountOut">0</span>)</button>
+            <button class="alert-filter-btn" id="inlineBtnAlertLow" onclick="filterInlineAlertReport('low')">⚠️ لە کەمی دایە (<span id="inlineAlertCountLow">0</span>)</button>
+          </div>
+          <div class="table-container">
+            <table id="inlineStockAlertTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>بەرهەم</th>
+                  <th>ژمارەی پارچە</th>
+                  <th>جۆر</th>
+                  <th>ماوە لە ستۆک</th>
+                  <th>کەمترین ستۆک</th>
+                  <th>دۆخ</th>
+                  <th>نرخی کڕین</th>
+                  <th>شوێن</th>
+                  <th>کردار</th>
+                </tr>
+              </thead>
+              <tbody id="inlineStockAlertTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PRODUCTS PAGE ========== -->
+      <div id="page-products" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⚙️ لیستی بەرهەمەکان</div>
+            <div class="btn-group">
+              <button class="btn btn-success" onclick="openAddProductModal()">
+                ➕ زیادکردنی بەرهەم
+              </button>
+              <button class="btn btn-outline" onclick="exportProducts()">
+                📥 جاپکردنی بەرهەمەکان (CSV)
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="search" id="searchInput" placeholder="گەڕان بە ناو، ژمارەی پارچە، مۆدێل، بارکۆد..." oninput="debounceSearch()">
+              <button class="btn btn-outline btn-sm" type="button" onclick="startBarcodeScanner()" aria-label="سکانکردنی بارکۆد">📷</button>
+            </div>
+            <div class="filter-group">
+              <label>جۆر:</label>
+              <select id="filterCategory" onchange="loadProducts()" style="width:160px">
+                <option value="">هەمووی</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>بارودۆخی ستۆک:</label>
+              <select id="filterStock" onchange="loadProducts()" style="width:160px">
+                <option value="">هەمووی</option>
+                <option value="in_stock">هەیە</option>
+                <option value="low_stock">کەمە</option>
+                <option value="out_of_stock">نەماوە</option>
+              </select>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="resetFilters()">🔄 ڕیسێت</button>
+          </div>
+
+          <!-- Products Table -->
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>بەرهەم</th>
+                  <th>جۆر</th>
+                  <th>مۆدێل</th>
+                  <th>دانە</th>
+                  <th>نرخی کڕین (IQD)</th>
+                  <th>نرخی فرۆشتن (IQD)</th>
+                  <th>نرخی فرۆشتن ($)</th>
+                  <th>شوێن</th>
+                  <th>کردار</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody">
+                <tr>
+                  <td colspan="10">
+                    <div class="empty-state">
+                      <div class="empty-icon">📦</div>
+                      <h3>هیچ بەرهەمێک نەدۆزرایەوە</h3>
+                      <p>بەرهەمی نوێ زیاد بکە</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination" id="paginationContainer">
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== CATEGORIES PAGE ========== -->
+      <div id="page-categories" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📁 لیستی جۆرەکان</div>
+            <div class="btn-group">
+              <button class="btn btn-success" onclick="openAddCategoryModal()">➕ زیادکردنی جۆر</button>
+              <button class="btn btn-outline" onclick="exportCategories()">📥 جاپکردنی جۆرەکان (CSV)</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ناوی جۆر</th>
+                  <th>وەسف</th>
+                  <th>ژمارەی بەرهەم</th>
+                  <th>کردار</th>
+                </tr>
+              </thead>
+              <tbody id="categoriesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== COMPANIES PAGE ========== -->
+      <div id="page-suppliers" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏢 لیستی کۆمپانیاکان</div>
+            <div class="btn-group">
+              <button class="btn btn-success" onclick="openAddSupplierModal()">➕ زیادکردنی کۆمپانیا</button>
+              <button class="btn btn-outline" onclick="exportSuppliers()">📥 جاپکردنی کۆمپانیاکان (CSV)</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ناوی کۆمپانیا</th>
+                  <th>مۆبایل</th>
+                  <th>ناونیشان</th>
+                  <th>کردار</th>
+                </tr>
+              </thead>
+              <tbody id="suppliersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== SALES PAGE ========== -->
+      <div id="page-sales" class="page-section" style="display:none;">
+
+        <!-- Summary Cards -->
+        <div class="stats-grid" style="margin-bottom:20px">
+          <div class="stat-card green">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="salesTodayRevenue">0</div>
+            <div class="stat-label">داهاتی ئەمڕۆ (IQD)</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value" id="salesMonthRevenue">0</div>
+            <div class="stat-label">داهاتی ئەم مانگە (IQD)</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-value" id="salesTotalOrders">0</div>
+            <div class="stat-label">کۆی فرۆشتنەکان</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">📦</div>
+            <div class="stat-value" id="salesTotalItems">0</div>
+            <div class="stat-label">کۆی دانە فرۆشراو</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">💰 لیستی فرۆشتنەکان</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="text" id="salesSearch" placeholder="🔍 گەڕان..." style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;width:180px" oninput="salesSearchDebounce()">
+              <input type="date" id="salesFromDate" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px" onchange="loadSales()">
+              <input type="date" id="salesToDate" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px" onchange="loadSales()">
+              <button class="btn btn-success" onclick="openAddSaleModal()">➕ فرۆشتنی نوێ</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>بەرهەم</th>
+                  <th>بڕ</th>
+                  <th>نرخی یەکە</th>
+                  <th>کۆی نرخ</th>
+                  <th>پارەدراو</th>
+                  <th>ماوە</th>
+                  <th>کڕیار</th>
+                  <th>بەروار</th>
+                  <th>کردار</th>
+                </tr>
+              </thead>
+              <tbody id="salesTableBody">
+                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-light)">داتاکان باردەکرێن...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="salesPagination" style="display:flex;justify-content:center;gap:8px;padding:16px"></div>
+        </div>
+      </div>
+
+      <!-- POS modules -->
+      <div id="page-expiry" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⏳ کاڵای بەسەرچوو و نزیک لە بەسەرچوون</div>
+            <label class="pos-date-filters">ماوەی ئاگاداری
+              <select id="expiryAlertDays" onchange="loadExpiringProducts()">
+                <option value="7">٧ ڕۆژ</option>
+                <option value="30" selected>٣٠ ڕۆژ</option>
+                <option value="90">٩٠ ڕۆژ</option>
+                <option value="180">١٨٠ ڕۆژ</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>کاڵا</th><th>بارکۆد</th><th>بڕ</th><th>بەرواری بەسەرچوون</th><th>ماوە</th></tr></thead>
+              <tbody id="expiringProductsTableBody"><tr><td colspan="5">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-customers" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">👥 کڕیار و هەژماری قەرز</div>
+          </div>
+          <form id="customerForm" class="pos-entry-form" onsubmit="createCustomer(event)">
+            <div class="form-group"><label for="customerName">ناوی کڕیار *</label><input id="customerName" required maxlength="150"></div>
+            <div class="form-group"><label for="customerPhone">مۆبایل</label><input id="customerPhone" maxlength="50" inputmode="tel"></div>
+            <div class="form-group"><label for="customerAddress">ناونیشان</label><input id="customerAddress"></div>
+            <button class="btn btn-primary" type="submit">➕ زیادکردنی کڕیار</button>
+          </form>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>کڕیار</th><th>مۆبایل</th><th>ناونیشان</th><th>قەرز / باڵانس</th><th>کردار</th></tr></thead>
+              <tbody id="customersTableBody"><tr><td colspan="5">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-purchases" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">📥 کڕین و زیادکردنی کاڵا بۆ مەخزەن</div></div>
+          <form id="purchaseForm" class="pos-entry-form" onsubmit="recordPurchase(event)">
+            <div class="form-group"><label for="purchaseSupplier">کۆمپانیا</label><select id="purchaseSupplier"><option value="">بێ کۆمپانیا</option></select></div>
+            <div id="purchaseItems" class="pos-line-items"></div>
+            <button class="btn btn-outline btn-sm" type="button" onclick="addPurchaseItemRow()">➕ زیادکردنی کاڵای تر</button>
+            <div class="form-group"><label for="purchasePaidAmount">پارەی دراو (IQD)</label><input id="purchasePaidAmount" type="number" min="0" step="0.01" value="0" required inputmode="decimal"></div>
+            <div class="form-group"><label for="purchaseNotes">تێبینی</label><input id="purchaseNotes" maxlength="500"></div>
+            <button class="btn btn-primary" type="submit">💾 تۆمارکردنی کڕین</button>
+          </form>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>ژمارە</th><th>کۆمپانیا</th><th>ژمارەی کاڵا</th><th>کۆی کڕین</th><th>پارەدراو</th><th>بەروار</th></tr></thead>
+              <tbody id="purchasesTableBody"><tr><td colspan="6">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="panel-header"><div class="panel-title">🏢 قەرزی کۆمپانیا دابینکەرەکان</div></div>
+          <form id="supplierPaymentForm" class="pos-entry-form" onsubmit="recordSupplierPayment(event)">
+            <div class="form-group"><label for="supplierPaymentSupplier">کۆمپانیا</label><select id="supplierPaymentSupplier" required><option value="">کۆمپانیا هەڵبژێرە</option></select></div>
+            <div class="form-group"><label for="supplierPaymentAmount">پارەی دراو (IQD)</label><input id="supplierPaymentAmount" type="number" min="0.01" step="0.01" required inputmode="decimal"></div>
+            <div class="form-group"><label for="supplierPaymentNotes">تێبینی</label><input id="supplierPaymentNotes" maxlength="500"></div>
+            <button class="btn btn-primary" type="submit">💵 تۆمارکردنی پارەدانی کۆمپانیا</button>
+          </form>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>کۆمپانیا</th><th>مۆبایل</th><th>قەرزی ماوە</th></tr></thead>
+              <tbody id="supplierBalancesTableBody"><tr><td colspan="3">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+            <!-- ========== SAFE POS EXPENSES (پارە سەرفکردن) ========== -->
+      <div id="page-expenses" class="page-section" style="display:none;">
+        <div class="safe-pos-expenses-view">
+          <!-- Top Form Entry Bar -->
+          <div class="pos-expense-top-form">
+            <div class="pos-expense-inputs-grid">
+              <div class="pos-field-wrap">
+                <label>بەروار</label>
+                <input type="date" id="safeExpenseDate" class="pos-control">
+              </div>
+              <div class="pos-field-wrap">
+                <label>تێبینی</label>
+                <input type="text" id="safeExpenseNote" class="pos-control" placeholder="تێبینی بنووسە...">
+              </div>
+              <div class="pos-field-wrap">
+                <label>جۆری پارە سەرفکردن</label>
+                <select id="safeExpenseCategory" class="pos-control">
+                  <option value="بەشی سۆلفە">بەشی سۆلفە</option>
+                  <option value="بەشی مەسڕۆفاتی پڕۆژە">بەشی مەسڕۆفاتی پڕۆژە</option>
+                  <option value="بەشی مەعاش">بەشی مەعاش</option>
+                  <option value="کرێی مەخزەن">کرێی مەخزەن</option>
+                  <option value="کارەبا و مۆلیدە">کارەبا و مۆلیدە</option>
+                  <option value="خواردن و میوانداری">خواردن و میوانداری</option>
+                  <option value="گواستنەوە و نەقڵیات">گواستنەوە و نەقڵیات</option>
+                  <option value="خەرجی گشتی">خەرجی گشتی</option>
+                </select>
+              </div>
+              <div class="pos-field-wrap">
+                <label>بە دینار</label>
+                <input type="number" id="safeExpenseIqd" class="pos-control" placeholder="بڕ بە دینار" oninput="onSafeExpenseIqdChange(this.value)">
+              </div>
+              <div class="pos-field-wrap">
+                <label>بە دۆلار</label>
+                <input type="number" id="safeExpenseUsd" class="pos-control" placeholder="بڕ بە دۆلار" step="0.01" oninput="onSafeExpenseUsdChange(this.value)">
+              </div>
+            </div>
+
+            <!-- Action Buttons Row -->
+            <div class="pos-expense-actions-bar">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <button type="button" class="pos-btn pos-btn-save" onclick="saveSafeExpense()">💾 سەیڤ</button>
+                <label class="pos-checkbox-label">
+                  <input type="checkbox" id="safeExpenseShowAll" onchange="loadSafeExpenses()"> پیشاندانی هەموو لیستەکە
+                </label>
+              </div>
+              <div class="pos-expense-quick-cats">
+                <button type="button" class="pos-btn pos-btn-purple" onclick="setSafeExpenseCategory('بەشی سۆلفە')">بەشی سۆلفە</button>
+                <button type="button" class="pos-btn pos-btn-green" onclick="setSafeExpenseCategory('بەشی مەسڕۆفاتی پڕۆژە')">بەشی مەسڕۆفاتی پڕۆژە</button>
+                <button type="button" class="pos-btn pos-btn-brown" onclick="setSafeExpenseCategory('بەشی مەعاش')">بەشی مەعاش</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="pos-expense-filter-bar">
+            <div class="filter-group">
+              <label>بەرواری یەکەم:</label>
+              <input type="date" id="safeExpenseFilterFrom" class="pos-control" style="width:140px;height:34px;">
+            </div>
+            <div class="filter-group">
+              <label>بەرواری دووەم:</label>
+              <input type="date" id="safeExpenseFilterTo" class="pos-control" style="width:140px;height:34px;">
+            </div>
+            <div class="filter-group">
+              <label>فلتەر بەپێی جۆر:</label>
+              <select id="safeExpenseFilterCategory" class="pos-control" style="width:160px;height:34px;">
+                <option value="هەمووی">هەمووی</option>
+                <option value="بەشی سۆلفە">بەشی سۆلفە</option>
+                <option value="بەشی مەسڕۆفاتی پڕۆژە">بەشی مەسڕۆفاتی پڕۆژە</option>
+                <option value="بەشی مەعاش">بەشی مەعاش</option>
+                <option value="کرێی مەخزەن">کرێی مەخزەن</option>
+                <option value="کارەبا و مۆلیدە">کارەبا و مۆلیدە</option>
+                <option value="خواردن و میوانداری">خواردن و میوانداری</option>
+                <option value="گواستنەوە و نەقڵیات">گواستنەوە و نەقڵیات</option>
+                <option value="خەرجی گشتی">خەرجی گشتی</option>
+              </select>
+            </div>
+            <button type="button" class="pos-btn pos-btn-search" onclick="loadSafeExpenses()">🔍 گەڕان</button>
+            <button type="button" class="pos-btn pos-btn-refresh" onclick="resetSafeExpenseFilters()">🔄 ڕیفریش</button>
+          </div>
+
+          <!-- Table -->
+          <div class="pos-table-card">
+            <table class="pos-expense-table">
+              <thead>
+                <tr>
+                  <th style="width:100px;text-align:center">سڕینەوە</th>
+                  <th>ناوی بەکارهێنەر</th>
+                  <th>بە دۆلار</th>
+                  <th>بە دینار</th>
+                  <th>بەروار</th>
+                  <th>تێبینی</th>
+                  <th>جۆری مەسروف</th>
+                </tr>
+              </thead>
+              <tbody id="safeExpensesTableBody">
+                <tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b">داتاکان باردەکرێن...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Summary Footer -->
+          <div class="pos-expense-footer-bar">
+            <div class="pos-footer-totals">
+              <div class="pos-footer-box">
+                <span>کۆی مەسروف بە دینار:</span>
+                <strong id="safeTotalIqd">0 د.ع</strong>
+              </div>
+              <div class="pos-footer-box usd">
+                <span>کۆی مەسروف بە دۆلار:</span>
+                <strong id="safeTotalUsd">$ 0.00</strong>
+              </div>
+            </div>
+            <button type="button" class="pos-btn pos-btn-print" onclick="printSafeExpensesReport()">🖨️ چاپ کردن</button>
+          </div>
+        </div>
+      </div>
+
+<div id="page-returns" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">↩️ گەڕاندنەوەی کاڵای فرۆشراو</div></div>
+          <form id="returnForm" class="pos-entry-form" onsubmit="recordSaleReturn(event)">
+            <div class="form-group"><label for="returnSaleId">فرۆشتن *</label><select id="returnSaleId" required><option value="">فرۆشتن هەڵبژێرە</option></select></div>
+            <div class="form-group"><label for="returnQuantity">بڕی گەڕاندنەوە *</label><input id="returnQuantity" type="number" min="1" value="1" required inputmode="numeric"></div>
+            <div class="form-group"><label for="returnNotes">هۆکاری گەڕاندنەوە</label><input id="returnNotes" maxlength="500"></div>
+            <button class="btn btn-primary" type="submit">💾 تۆمارکردن و گەڕاندنەوەی ستۆک</button>
+          </form>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>بەرهەم</th><th>ژمارەی فرۆشتن</th><th>بڕ</th><th>پارەی گەڕاوە</th><th>کڕیار</th><th>بەروار</th></tr></thead>
+              <tbody id="returnsTableBody"><tr><td colspan="6">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-cash" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">🧾 ڕاپۆرتی کاش و جووڵەی پارە</div></div>
+          <div class="pos-date-filters">
+            <label>لە <input id="cashFromDate" type="date"></label>
+            <label>تا <input id="cashToDate" type="date"></label>
+            <button class="btn btn-primary btn-sm" onclick="loadCashSummary()">پیشاندان</button>
+          </div>
+          <div class="pos-summary-grid" id="cashSummary"></div>
+        </div>
+      </div>
+
+      <div id="page-settings" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">⚙️ ڕێکخستنەکانی سیستەم</div></div>
+          <form id="posSettingsForm" class="pos-settings-form" onsubmit="savePosSettings(event)">
+            <label><input type="checkbox" name="confirm_sales" checked> پێش تۆمارکردنی فرۆشتن پشتڕاستکردنەوە بخوازە</label>
+            <label><input type="checkbox" name="allow_credit_sales" checked> ڕێگە بە فرۆشتنی قەرزدار بدە</label>
+            <label><input type="checkbox" name="show_low_stock_alerts" checked> ئاگاداریی کاڵای کەم لە داشبۆرد پیشان بدە</label>
+            <label><input type="checkbox" name="show_expiry_alerts" checked> ئاگاداریی کاڵای بەسەرچوو پیشان بدە</label>
+            <label><input type="checkbox" name="compact_mobile" checked> ڕووکاری گونجاو بۆ شاشەی مۆبایل</label>
+            <button class="btn btn-primary" type="submit">💾 پاشەکەوتکردنی ڕێکخستنەکان</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           SAFE POS V6.0.1 - 24 DEDICATED POS MODULE SECTIONS
+           ======================================================== -->
+
+      <!-- 1. وەسڵە فرۆشراوەکان (Sold Invoices) -->
+      <div id="page-sales-invoices" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🧾 وەسڵە فرۆشراوەکان (Sales Invoices)</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="switchPage('sales'); if(typeof openAddSaleModal==='function') openAddSaleModal();">➕ فرۆشتنی نوێ</button>
+              <button class="btn btn-outline btn-sm" onclick="loadSalesInvoices()">🔄 نوێکردنەوە</button>
+            </div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box"><div class="stat-label">کۆی وەسڵەکان</div><div class="stat-num" id="invTotalCount">0</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">کۆی فرۆشراو (دینار)</div><div class="stat-num" id="invTotalIqd">0 د.ع</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">کۆی فرۆشراو (دۆلار)</div><div class="stat-num" id="invTotalUsd">$ 0.00</div></div>
+            <div class="pos-stat-box orange"><div class="stat-label">پارەی وەرگیراو</div><div class="stat-num" id="invTotalReceived">0 د.ع</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">قەرزی ماوە</div><div class="stat-num" id="invTotalDue">0 د.ع</div></div>
+          </div>
+          <div class="pos-filter-bar">
+            <div class="pos-filter-group"><label>گەڕان بەدوای کڕیار / پسوڵە:</label><input type="text" id="invSearchInput" class="pos-filter-input" placeholder="ناوی کڕیار یان کۆد..." oninput="filterSalesInvoices()"></div>
+            <div class="pos-filter-group"><label>ماوە:</label><select id="invDateFilter" class="pos-filter-input" onchange="filterSalesInvoices()"><option value="all">هەمووی</option><option value="today">ئەمڕۆ</option><option value="week">ئەم هەفتەیە</option><option value="month">ئەم مانگە</option></select></div>
+            <div class="pos-filter-group"><label>دۆخی پارەدان:</label><select id="invStatusFilter" class="pos-filter-input" onchange="filterSalesInvoices()"><option value="all">هەموو دۆخەکان</option><option value="paid">تەواو دراوە (کاش)</option><option value="debt">قەرزدار</option></select></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ژ.پسوڵە</th><th>بەروار و کات</th><th>کڕیار</th><th>کاڵا و بڕ</th><th>کۆی نرخ (IQD)</th><th>پارەی دراو</th><th>ماوە</th><th>دۆخ</th><th>کردارەکان</th></tr></thead>
+              <tbody id="salesInvoicesTableBody"><tr><td colspan="9" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. پارەوەرگرتن لە کاشێر (Cashier Handover) -->
+      <div id="page-cashier-handover" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🪙 پارەوەرگرتن لە کاشێر و داخستنی شیفت</span></div>
+            <div class="pos-module-actions"><button class="btn btn-outline btn-sm" onclick="calcCashierHandover()">🔄 هەژمارکردنەوەی داهات</button></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.2fr 1.8fr;gap:20px">
+            <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #cbd5e1">
+              <h4 style="margin:0 0 12px 0;color:#1e3a8a">📝 فۆڕمی وەرگرتنی کاش لە کاشێر</h4>
+              <div class="form-group" style="margin-bottom:10px"><label>ناوی کاشێر</label><input type="text" id="handoverCashierName" class="pos-filter-input" style="width:100%" value="Admin (ئەدمینی کاشێر)" readonly></div>
+              <div class="form-group" style="margin-bottom:10px"><label>داهاتی کاشی فرۆشتنی ئەمڕۆ (پێویست)</label><input type="text" id="handoverExpectedIqd" class="pos-filter-input" style="width:100%;font-weight:700;color:#1e40af" readonly value="0 د.ع"></div>
+              <div class="form-group" style="margin-bottom:10px"><label>بڕی فیعلی ژمێردراو بە دینار (IQD)</label><input type="number" id="handoverActualIqd" class="pos-filter-input" style="width:100%;font-size:16px;font-weight:800" placeholder="بڕ بە دینار..." oninput="onHandoverCountChange()"></div>
+              <div class="form-group" style="margin-bottom:10px"><label>بڕی فیعلی ژمێردراو بە دۆلار (USD)</label><input type="number" id="handoverActualUsd" class="pos-filter-input" style="width:100%;font-size:16px;font-weight:800" placeholder="بڕ بە دۆلار..." oninput="onHandoverCountChange()"></div>
+              <div class="form-group" style="margin-bottom:10px"><label>جیاوازی ژمێردراو (کەمی / زیادی)</label><div id="handoverDiffDisplay" style="padding:8px 12px;border-radius:6px;font-weight:800;background:#f1f5f9;color:#334155">هاوتایە (0 د.ع)</div></div>
+              <div class="form-group" style="margin-bottom:14px"><label>تێبینی داخستنی شیفت</label><input type="text" id="handoverNotesInput" class="pos-filter-input" style="width:100%" placeholder="تێبینی بنووسە..." value="تەسلیماتی داهاتی کۆتایی شیفت"></div>
+              <button class="btn btn-primary" style="width:100%" onclick="saveCashierHandover()">💾 تۆمارکردنی تەسلیمات و داخستنی شیفت</button>
+            </div>
+            <div>
+              <h4 style="margin:0 0 12px 0;color:#334155">📜 مێژووی پارەوەرگرتنەکانی پێشوو</h4>
+              <div class="pos-table-wrap">
+                <table class="pos-table">
+                  <thead><tr><th>بەروار و کات</th><th>کاشێر</th><th>بڕی وەرگیراو</th><th>جیاوازی</th><th>تێبینی</th></tr></thead>
+                  <tbody id="handoverHistoryBody"><tr><td colspan="5" style="text-align:center;padding:16px;color:#64748b">هیچ تۆمارێک نییە</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. بەهەدەردراوەکان (Damaged / Waste Items) -->
+      <div id="page-damaged" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>❌ کاڵا بەهەدەردراوەکان (تیاچوو، خراپبوو و شکاو)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-outline btn-sm" onclick="loadDamagedItems()">🔄 نوێکردنەوە</button></div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box red"><div class="stat-label">کۆی دانەی بەهەدەرچوو</div><div class="stat-num" id="damagedTotalQty">0 دانە</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">کۆی بەهای زەرەر (IQD)</div><div class="stat-num" id="damagedTotalLossIqd">0 د.ع</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">کۆی بەهای زەرەر (USD)</div><div class="stat-num" id="damagedTotalLossUsd">$ 0.00</div></div>
+          </div>
+          <div style="background:#fff1f2;border:1px solid #fecaca;padding:14px;border-radius:8px;margin-bottom:16px">
+            <h4 style="margin:0 0 10px 0;color:#991b1b">➕ تۆمارکردنی کاڵای بەهەدەرچوو و کەمکردنەوە لە مەخزەن</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;align-items:end">
+              <div><label style="font-size:12px;font-weight:700">کاڵا هەڵبژێرە:</label><select id="damagedProductSelect" class="pos-filter-input" style="width:100%" onchange="onDamagedProductSelect()"><option value="">-- بەرهەم هەڵبژێرە --</option></select></div>
+              <div><label style="font-size:12px;font-weight:700">ژمارەی دانەی بەهەدەرچوو:</label><input type="number" id="damagedQuantity" class="pos-filter-input" style="width:100%" min="1" value="1"></div>
+              <div><label style="font-size:12px;font-weight:700">هۆکاری بەهەدەرچوون:</label><select id="damagedReasonSelect" class="pos-filter-input" style="width:100%"><option>شکانی کاتی داگرتن و گواستنەوە</option><option>عەیبداری کارگە و مەعمەل</option><option>ژەنگ هەڵهێنان و کۆنبوون</option><option>بەسەرچوونی ماوە</option><option>وونبوون / هیتر</option></select></div>
+              <div><label style="font-size:12px;font-weight:700">تێبینی زیاتر:</label><input type="text" id="damagedNotes" class="pos-filter-input" style="width:100%" placeholder="تێبینی..."></div>
+              <div><button class="btn btn-primary" style="width:100%;background:#dc2626" onclick="saveDamagedItem()">💾 تۆمارکردن و دەرهێنان لە ستۆک</button></div>
+            </div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>بەروار</th><th>ناوی کاڵا</th><th>بارکۆد</th><th>دانە</th><th>تێچووی زەرەر (IQD)</th><th>هۆکار</th><th>تێبینی</th><th>کردار</th></tr></thead>
+              <tbody id="damagedItemsTableBody"><tr><td colspan="8" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. نرخ بۆ سەر ڕەفە (Shelf Pricing Tags) -->
+      <div id="page-shelf-tags" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🏷️ نرخ بۆ سەر ڕەفە (دیزاین و چاپی ستیکەری ڕەفە)</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپکردنی نرخەکانی سەر ڕەفە</button>
+            </div>
+          </div>
+          <div class="pos-filter-bar">
+            <div class="pos-filter-group"><label>فلتەر بەپێی جۆر:</label><select id="shelfCategoryFilter" class="pos-filter-input" onchange="renderShelfTags()"><option value="all">هەموو جۆرەکان</option></select></div>
+            <div class="pos-filter-group"><label>گەڕان بەدوای بەرهەم:</label><input type="text" id="shelfSearchInput" class="pos-filter-input" placeholder="ناوی کاڵا یان بارکۆد..." oninput="renderShelfTags()"></div>
+            <div class="pos-filter-group"><label>قەبارەی ستیکەر:</label><select id="shelfSizeSelect" class="pos-filter-input" onchange="renderShelfTags()"><option value="standard">ستاندارد (مامناوەند)</option><option value="large">گەورە (دیار)</option><option value="compact">بچووک (پوخت)</option></select></div>
+          </div>
+          <div class="shelf-tags-grid" id="shelfTagsGrid">
+            <!-- Shelf tag cards rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. دروستکردنی بارکۆد (Barcode Generator) -->
+      <div id="page-barcode" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📊 دروستکردن و چاپی بارکۆد</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="printBarcodeSheet()">🖨️ چاپی لەزگەی بارکۆد</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:20px">
+            <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #cbd5e1">
+              <h4 style="margin:0 0 12px 0;color:#1e3a8a">⚙️ ڕێکخستنی بارکۆد</h4>
+              <div class="form-group" style="margin-bottom:10px"><label>بەرهەم هەڵبژێرە (یان دەستی بنووسە):</label><select id="barcodeProductSelect" class="pos-filter-input" style="width:100%" onchange="onBarcodeProductSelect()"><option value="">-- بەرهەم هەڵبژێرە --</option></select></div>
+              <div class="form-group" style="margin-bottom:10px"><label>ناوی کاڵا:</label><input type="text" id="barcodeItemName" class="pos-filter-input" style="width:100%" placeholder="ناوی کاڵا..."></div>
+              <div class="form-group" style="margin-bottom:10px"><label>ژمارەی بارکۆد:</label><div style="display:flex;gap:6px"><input type="text" id="barcodeCodeValue" class="pos-filter-input" style="flex:1" placeholder="89345..."><button class="btn btn-outline btn-sm" onclick="generateRandomBarcode()">🔀 خۆکار</button></div></div>
+              <div class="form-group" style="margin-bottom:10px"><label>نرخی فرۆشتن (دینار):</label><input type="number" id="barcodeItemPrice" class="pos-filter-input" style="width:100%" placeholder="15000"></div>
+              <div class="form-group" style="margin-bottom:14px"><label>ژمارەی لەزگە بۆ چاپ:</label><input type="number" id="barcodePrintCount" class="pos-filter-input" style="width:100%" value="12" min="1" max="100"></div>
+              <button class="btn btn-primary" style="width:100%" onclick="updateBarcodePreview()">👁️ نوێکردنەوەی پێشبینین</button>
+            </div>
+            <div>
+              <h4 style="margin:0 0 12px 0;color:#334155">🏷️ پێشبینینی لەزگەی بارکۆد بۆ چاپ</h4>
+              <div id="barcodePreviewArea" style="background:#ffffff;border:2px dashed #94a3b8;padding:16px;border-radius:8px;display:grid;grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));gap:10px">
+                <!-- Live preview stickers -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. وەسڵەکڕدراوەکان (Purchase Invoices) -->
+      <div id="page-purchase-invoices" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📑 وەسڵە کڕدراوەکان (کڕین لە کۆمپانیاکان)</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="switchPage('purchases')">➕ پسوڵەی کڕینی نوێ</button>
+              <button class="btn btn-outline btn-sm" onclick="loadPurchaseInvoicesList()">🔄 نوێکردنەوە</button>
+            </div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box"><div class="stat-label">کۆی وەسڵەکانی کڕین</div><div class="stat-num" id="purchTotalCount">0</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">کۆی بڕی کڕدراو (دینار)</div><div class="stat-num" id="purchTotalAmount">0 د.ع</div></div>
+            <div class="pos-stat-box orange"><div class="stat-label">کۆی پارەی دراو</div><div class="stat-num" id="purchTotalPaid">0 د.ع</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">قەرزی کۆمپانیاکان</div><div class="stat-num" id="purchTotalRemaining">0 د.ع</div></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ژ.پسوڵە</th><th>بەروار</th><th>کۆمپانیا / دابینکەر</th><th>ژمارەی کاڵا</th><th>کۆی نرخ (IQD)</th><th>پارەی دراو</th><th>ماوە بۆ کۆمپانیا</th><th>دۆخ</th><th>کردار</th></tr></thead>
+              <tbody id="purchaseInvoicesTableBody"><tr><td colspan="9" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. قەرزی کۆمپانیاکان (Company Debts) -->
+      <div id="page-company-debts" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>💵 قەرزی کۆمپانیا و دابینکەرەکان (Company Debts)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-outline btn-sm" onclick="loadCompanyDebts()">🔄 نوێکردنەوە</button></div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box"><div class="stat-label">کۆی کۆمپانیاکان</div><div class="stat-num" id="compDebtCount">0</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">کۆی قەرزی ماوەی کۆمپانیاکان</div><div class="stat-num" id="compDebtTotal">0 د.ع</div></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی کۆمپانیا</th><th>ژمارەی مۆبایل</th><th>کۆی کڕینەکان</th><th>کۆی پارەی دراو</th><th>قەرزی ماوە (IQD)</th><th>دۆخ</th><th>کردار</th></tr></thead>
+              <tbody id="companyDebtsTableBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. لیستی قەرزدارەکان (Customer Debtors List) -->
+      <div id="page-debtors-list" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>👥 لیستی کڕیارە قەرزدارەکان</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-outline btn-sm" onclick="printDebtorsReport()">🖨️ چاپی لیستی قەرزدارەکان</button>
+              <button class="btn btn-outline btn-sm" onclick="loadDebtorsList()">🔄 نوێکردنەوە</button>
+            </div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box orange"><div class="stat-label">کۆی کڕیارە قەرزدارەکان</div><div class="stat-num" id="debtorsCount">0</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">کۆی گشتی قەرزی سەر خەڵک</div><div class="stat-num" id="debtorsTotalAmount">0 د.ع</div></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی کڕیار</th><th>ژمارەی مۆبایل</th><th>ناونیشان</th><th>بڕی قەرز (IQD)</th><th>دۆخ</th><th>ئاگاداری واتسئەپ</th><th>کردار</th></tr></thead>
+              <tbody id="debtorsTableBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. وەرگرتنەوەی قەرز (Debt Collection) -->
+      <div id="page-debt-collection" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header"><div class="pos-module-title"><span>💳 وەرگرتنەوەی قەرز لە کڕیار (پسوڵەی وەرگرتنی کاش)</span></div></div>
+          <div style="display:grid;grid-template-columns:1.2fr 1.8fr;gap:20px">
+            <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #cbd5e1">
+              <h4 style="margin:0 0 12px 0;color:#1e3a8a">📥 تۆمارکردنی وەرگرتنی پارەی قەرز</h4>
+              <div class="form-group" style="margin-bottom:10px"><label>کڕیاری قەرزدار هەڵبژێرە:</label><select id="debtCollectCustomer" class="pos-filter-input" style="width:100%" onchange="onDebtCollectCustomerChange()"><option value="">-- کڕیار هەڵبژێرە --</option></select></div>
+              <div style="background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:6px;margin-bottom:10px"><div>قەرزی ماوە لەسەر ئەم کڕیارە:</div><strong id="debtCollectBalance" style="font-size:20px;color:#dc2626">0 د.ع</strong></div>
+              <div class="form-group" style="margin-bottom:10px"><label>بڕی پارەی وەرگیراو بە دینار (IQD):</label><input type="number" id="debtCollectAmountIqd" class="pos-filter-input" style="width:100%;font-size:16px;font-weight:800" placeholder="بڕی پارەی دراو..."></div>
+              <div class="form-group" style="margin-bottom:10px"><label>شێوازی وەرگرتن:</label><select id="debtCollectMethod" class="pos-filter-input" style="width:100%"><option>کاش (دەستی)</option><option>حەواڵە</option><option>فاستپەی / زین کاش</option><option>کارتی بانکی</option></select></div>
+              <div class="form-group" style="margin-bottom:14px"><label>تێبینی:</label><input type="text" id="debtCollectNotes" class="pos-filter-input" style="width:100%" placeholder="تێبینی..." value="دانەوەی قەرز"></div>
+              <button class="btn btn-primary" style="width:100%" onclick="saveDebtCollection()">💾 وەرگرتنی پارە و دەرکردنی پسوڵە</button>
+            </div>
+            <div>
+              <h4 style="margin:0 0 12px 0;color:#334155">📜 وەرگرتنەوەکانی ئەم دواییە</h4>
+              <div class="pos-table-wrap">
+                <table class="pos-table">
+                  <thead><tr><th>بەروار</th><th>کڕیار</th><th>بڕی وەرگیراو</th><th>شێواز</th><th>تێبینی</th></tr></thead>
+                  <tbody id="debtCollectHistoryBody"><tr><td colspan="5" style="text-align:center;padding:16px;color:#64748b">هیچ تۆمارێک نییە</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. ئاگاداری قیست (Installment Alerts) -->
+      <div id="page-installment-alerts" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>⚠️ ئاگاداری قیستە نزیکبووەوە و دواکەوتووەکان</span></div>
+            <div class="pos-module-actions"><button class="btn btn-outline btn-sm" onclick="loadInstallmentAlerts()">🔄 نوێکردنەوە</button></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>کڕیار</th><th>مۆبایل</th><th>بڕی قیست (دینار)</th><th>بەرواری قیست</th><th>ماوەی بەروار</th><th>دۆخ</th><th>کردار</th></tr></thead>
+              <tbody id="installmentAlertsTableBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11. داشبۆردی قیست (Installment Dashboard) -->
+      <div id="page-installment-dash" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📒 داشبۆردی سیستەمی قیست (Installments)</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="openAddInstallmentModal()">➕ گرێبەستی قیستی نوێ</button>
+            </div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box"><div class="stat-label">کۆی گرێبەستەکانی قیست</div><div class="stat-num" id="instTotalContracts">4</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">کۆی بەهای قیستەکان</div><div class="stat-num" id="instTotalValue">24,500,000 د.ع</div></div>
+            <div class="pos-stat-box orange"><div class="stat-label">پارەی وەرگیراوی قیست</div><div class="stat-num" id="instTotalCollected">16,200,000 د.ع</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">ماوە بۆ وەرگرتن</div><div class="stat-num" id="instTotalPending">8,300,000 د.ع</div></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی کڕیار</th><th>کاڵا</th><th>کۆی نرخ</th><th>پێشەکی</th><th>مانگانە</th><th>ڕێژەی پارەدان</th><th>ماوە</th><th>کردار</th></tr></thead>
+              <tbody id="installmentContractsTableBody"><tr><td colspan="8" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 12. ڕاپۆرتی قیست (Installment Report) -->
+      <div id="page-installment-report" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📈 ڕاپۆرتی گشتی قیستەکان</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپی ڕاپۆرتی قیست</button></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>کڕیار</th><th>کۆی گرێبەست</th><th>وەرگیراو</th><th>ماوە</th><th>قیستی داهاتوو</th><th>دۆخ</th></tr></thead>
+              <tbody id="installmentReportTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 13. قاسە (Safe / Cashbox) -->
+      <div id="page-safe" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🏦 قاسەی سەرەکی و سندوقی پارە (Safe & Cash Drawer)</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="openSafeTransferModal('in')">➕ داخڵکردنی کاش بۆ قاسە</button>
+              <button class="btn btn-outline btn-sm" onclick="openSafeTransferModal('out')">➖ ڕاکێشانی کاش لە قاسە</button>
+            </div>
+          </div>
+          <div class="safe-balance-cards">
+            <div class="safe-balance-card iqd">
+              <div style="font-weight:700;color:#1e40af">کۆی پارەی ناو قاسە بە دینار (IQD)</div>
+              <span class="val" id="safeViewBalanceIqd" style="color:#1e3a8a">0 د.ع</span>
+            </div>
+            <div class="safe-balance-card usd">
+              <div style="font-weight:700;color:#166534">کۆی پارەی ناو قاسە بە دۆلار (USD)</div>
+              <span class="val" id="safeViewBalanceUsd" style="color:#15803d">$ 0.00</span>
+            </div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box green"><div class="stat-label">داهاتی ئەمڕۆ (فرۆشتن + قەرز)</div><div class="stat-num" id="safeTodayInflow">0 د.ع</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">دەرچوونی ئەمڕۆ (مەسروف + کۆمپانیا)</div><div class="stat-num" id="safeTodayOutflow">0 د.ع</div></div>
+            <div class="pos-stat-box"><div class="stat-label">سافی ڕۆژانە</div><div class="stat-num" id="safeTodayNet">0 د.ع</div></div>
+          </div>
+          <h4 style="margin:16px 0 10px 0;color:#334155">📜 بزوتنەوەی پارەی ناو قاسە</h4>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>بەروار و کات</th><th>جۆری کردار</th><th>بڕی دینار</th><th>بڕی دۆلار</th><th>دەستکاریکەر</th><th>تێبینی</th></tr></thead>
+              <tbody id="safeLedgerTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 14. قازانجەکان (Profits) -->
+      <div id="page-profits" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📊 قازانجەکان (داهات، تێچوو و قازانجی سافی)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-outline btn-sm" onclick="loadProfitsReport()">🔄 نوێکردنەوە</button></div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box"><div class="stat-label">کۆی فرۆشراو (داهات)</div><div class="stat-num" id="profTotalRevenue">0 د.ع</div></div>
+            <div class="pos-stat-box"><div class="stat-label">تێچووی کڕینی کاڵا</div><div class="stat-num" id="profTotalCost">0 د.ع</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">قازانجی گشتی کاڵا</div><div class="stat-num" id="profGrossProfit">0 د.ع</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">کۆی مەسروفات</div><div class="stat-num" id="profTotalExpenses">0 د.ع</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">قازانجی سافی (سود)</div><div class="stat-num" id="profNetProfit" style="font-size:22px;color:#16a34a">0 د.ع</div></div>
+          </div>
+          <h4 style="margin:16px 0 10px 0;color:#334155">📦 قازانجی سەرجەم بەرهەمە فرۆشراوەکان</h4>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی بەرهەم</th><th>دانەی فرۆشراو</th><th>نرخی کڕین</th><th>نرخی فرۆشتن</th><th>قازانجی یەک دانە</th><th>کۆی قازانج</th><th>ڕێژەی قازانج %</th></tr></thead>
+              <tbody id="profitsProductTableBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 15. کاڵا کەمبووەکان (Low Stock Items) -->
+      <div id="page-low-stock" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📉 کاڵا کەمبووەکان و تەواوبووەکان لە مەخزەن</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="switchPage('purchases')">📥 کڕین و زیادکردنی ستۆک</button>
+              <button class="btn btn-outline btn-sm" onclick="loadLowStockItems()">🔄 نوێکردنەوە</button>
+            </div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی بەرهەم</th><th>جۆر</th><th>کۆدی پارچە</th><th>شوێنی ڕەفە</th><th>ستۆکی ئێستا</th><th>کەمترین ستۆک</th><th>دۆخ</th><th>کردار</th></tr></thead>
+              <tbody id="lowStockTableBody"><tr><td colspan="8" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 16. جۆردی فرۆشراوەکان (Sales Audit / Summary) -->
+      <div id="page-sales-audit" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🥧 جۆردی فرۆشراوەکان (کۆی گشتی دانە و نرخی فرۆشراو)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپکردنی جەردی فرۆشتن</button></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ڕیزبەندی</th><th>ناوی بەرهەم</th><th>کۆدی پارچە</th><th>کۆی دانەی فرۆشراو</th><th>کۆی نرخی فرۆشراو (IQD)</th><th>پشکی فرۆشتن</th></tr></thead>
+              <tbody id="salesAuditTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 17. کەشف حساب پارە (Cash Statement) -->
+      <div id="page-cash-statement" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🏛️ کەشف حساب پارە (کاش و جوڵەی دراو)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپی کەشف حسابی پارە</button></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>بەروار</th><th>جۆری جوڵە</th><th>وەسف</th><th>هاتوو (+)</th><th>دەرچوو (-)</th><th>باڵانسی قاسە</th></tr></thead>
+              <tbody id="cashStatementTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 18. کەشف حساب کریار (Customer Statement) -->
+      <div id="page-customer-statement" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>👤 کەشف حساب کریار (Customer Statement)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپی کەشف حسابی کڕیار</button></div>
+          </div>
+          <div class="pos-filter-bar">
+            <div class="pos-filter-group"><label>کڕیار هەڵبژێرە:</label><select id="stmtCustomerSelect" class="pos-filter-input" style="min-width:240px" onchange="loadCustomerStatement()"><option value="">-- کڕیار هەڵبژێرە --</option></select></div>
+            <div id="stmtCustomerInfoWrap" style="margin-right:auto;display:flex;gap:14px;align-items:center">
+              <div>ژ.مۆبایل: <strong id="stmtCustPhone">-</strong></div>
+              <div>قەرزی ئێستا: <strong id="stmtCustBalance" style="color:#dc2626;font-size:16px">0 د.ع</strong></div>
+            </div>
+          </div>
+          <div class="pos-statement-print-header">
+            <h2>Auto Part - پسوڵەی کەشف حسابی کڕیار</h2>
+            <div id="stmtPrintDetails"></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>بەروار</th><th>جۆری پسوڵە</th><th>وەسف</th><th>کۆی پسوڵە (+)</th><th>پارەی دراو (-)</th><th>باڵانسی قەرز</th></tr></thead>
+              <tbody id="customerStatementTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">تکایە کڕیارێک هەڵبژێرە</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 19. کەشف حساب کرین (Purchase Statement) -->
+      <div id="page-purchase-statement" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>🛒 کەشف حساب کرین (حیساباتی کڕین لەگەڵ کۆمپانیاکان)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپی کەشف حساب</button></div>
+          </div>
+          <div class="pos-filter-bar">
+            <div class="pos-filter-group"><label>کۆمپانیا هەڵبژێرە:</label><select id="stmtSupplierSelect" class="pos-filter-input" style="min-width:240px" onchange="loadSupplierStatement()"><option value="">-- کۆمپانیا هەڵبژێرە --</option></select></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>بەروار</th><th>وەسف</th><th>بڕی کڕدراو (+)</th><th>پارەی دراو بە کۆمپانیا (-)</th><th>قەرزی ماوە</th></tr></thead>
+              <tbody id="supplierStatementTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b">تکایە کۆمپانیایەک هەڵبژێرە</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 20. جەردی کڕدراوەکان (Purchases Audit) -->
+      <div id="page-purchase-audit" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📊 جەردی کڕدراوەکان (کۆی گشتی کاڵای کڕدراو)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپی جەردی کڕین</button></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی بەرهەم</th><th>کۆدی پارچە</th><th>کۆی دانەی کڕدراو</th><th>کۆی تێچووی کڕین (IQD)</th><th>تێکڕای نرخی کڕین</th></tr></thead>
+              <tbody id="purchaseAuditTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 21. ڕاپۆرتی پارە (Financial Report) -->
+      <div id="page-money-report" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>💰 ڕاپۆرتی گشتی دارایی و داهات (Financial Statement)</span></div>
+            <div class="pos-module-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپی ڕاپۆرت</button></div>
+          </div>
+          <div style="max-width:650px;margin:0 auto;background:#f8fafc;padding:20px;border-radius:10px;border:1px solid #cbd5e1">
+            <h3 style="text-align:center;margin:0 0 16px 0;color:#1e3a8a">پوختەی دارایی Auto Part</h3>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0"><span>کۆی گشتی داهاتی فرۆشتن:</span><strong id="finReportSales" style="color:#16a34a">0 د.ع</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0"><span>تێچووی کڕینی کاڵای فرۆشراو (COGS):</span><strong id="finReportCost" style="color:#dc2626">0 د.ع</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0"><span>قازانجی بەر لە مەسروف (Gross Profit):</span><strong id="finReportGross" style="color:#2563eb">0 د.ع</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0"><span>کۆی مەسروفاتی دوکان:</span><strong id="finReportExpenses" style="color:#dc2626">0 د.ع</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid #cbd5e1;font-size:18px"><span style="font-weight:800">قازانجی سافی کۆتایی (Net Income):</span><strong id="finReportNet" style="color:#16a34a;font-size:20px">0 د.ع</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 22. جەردکردن (Stocktaking & Reconciliation) -->
+      <div id="page-stocktaking" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>📋 جەردکردن و وردبینی مەخزەن (Physical Stocktaking)</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ چاپی فۆڕمی جەردکردن</button>
+              <button class="btn btn-primary btn-sm" onclick="reconcileStocktaking()">💾 پەسەندکردنی جیاوازییەکان و یەکسانکردن</button>
+            </div>
+          </div>
+          <div class="pos-stats-strip">
+            <div class="pos-stat-box"><div class="stat-label">کۆی بەرهەمەکان</div><div class="stat-num" id="stocktakingTotalItems">0</div></div>
+            <div class="pos-stat-box green"><div class="stat-label">هاوتا و تەواو</div><div class="stat-num" id="stocktakingMatched">0</div></div>
+            <div class="pos-stat-box red"><div class="stat-label">جیاوازی کەم یان زیاد</div><div class="stat-num" id="stocktakingDiffs">0</div></div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی کاڵا</th><th>بارکۆد</th><th>ڕەفە</th><th>ژمارەی سیستم</th><th>ژمارەی فیعلی (مەخزەن)</th><th>جیاوازی</th><th>دۆخ</th></tr></thead>
+              <tbody id="stocktakingTableBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 23. بەکارهێنەری سیستم (System Users) -->
+      <div id="page-system-users" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header">
+            <div class="pos-module-title"><span>⚙️ بەکارهێنەرانی سیستەم و کاشێرەکان</span></div>
+            <div class="pos-module-actions">
+              <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">➕ بەکارهێنەری نوێ</button>
+            </div>
+          </div>
+          <div class="pos-table-wrap">
+            <table class="pos-table">
+              <thead><tr><th>ناوی بەکارهێنەر</th><th>ناوی تەواو</th><th>ڕۆڵ / دەسەڵات</th><th>دۆخ</th><th>کاتی دروستکردن</th><th>کردار</th></tr></thead>
+              <tbody id="systemUsersTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b">داتاکان باردەکرێن...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 24. پاشەکەوتی داتاکان (Data Backup & Restore) -->
+      <div id="page-backup" class="page-section" style="display:none;">
+        <div class="pos-module-section">
+          <div class="pos-module-header"><div class="pos-module-title"><span>💾 پاشەکەوتی داتاکان (Database Backup & Restore)</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div style="background:#f8fafc;padding:20px;border-radius:10px;border:1px solid #cbd5e1;text-align:center">
+              <div style="font-size:42px;margin-bottom:8px">📥</div>
+              <h3 style="margin:0 0 8px 0;color:#1e3a8a">داگرتنی باکئەپی سەرجەم داتاکان</h3>
+              <p style="color:#64748b;font-size:13px;margin-bottom:16px">داگرتنی کۆپییەکی پارێزراو لە سەرجەم بەرهەم، فرۆشتن، مەسروفات، کڕیار و کۆمپانیاکان.</p>
+              <button class="btn btn-primary" onclick="triggerPosBackup()">💾 داگرتنی باکئەپ (JSON Backup)</button>
+            </div>
+            <div style="background:#f8fafc;padding:20px;border-radius:10px;border:1px solid #cbd5e1;text-align:center">
+              <div style="font-size:42px;margin-bottom:8px">📤</div>
+              <h3 style="margin:0 0 8px 0;color:#1e3a8a">گەڕاندنەوەی داتاکان لە باکئەپ</h3>
+              <p style="color:#64748b;font-size:13px;margin-bottom:16px">گەڕاندنەوەی فایلێکی JSONی باکئەپی پێشوو بۆ ناو سیستەم.</p>
+              <input type="file" id="posBackupFileInput" accept=".json" style="display:none" onchange="handleRestoreBackup(event)">
+              <button class="btn btn-outline" onclick="document.getElementById('posBackupFileInput').click()">📂 هەڵبژاردنی فایلی باکئەپ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end .content -->
+  </div><!-- end .main-content -->
+
+  <!-- ========== Product Modal ========== -->
+  <!-- ========== QR Code Modal ========== -->
+  <div class="modal-overlay" id="qrModal" onclick="if(event.target===this)closeModal('qrModal')">
+    <div class="modal" style="max-width:380px;text-align:center">
+      <div class="modal-header">
+        <h3>📱 QR کۆدی بەرهەم</h3>
+        <button class="modal-close" onclick="closeModal('qrModal')">✕</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+        <div id="qrProductLabel" style="font-weight:700;font-size:15px;color:var(--text)"></div>
+        <div id="qrProductPart" style="font-size:12px;color:var(--text-light)"></div>
+        <div id="qrCanvas" style="margin:8px 0"></div>
+        <p style="font-size:12px;color:var(--text-light);margin:0">QR کۆد بپشکێ بۆ بینینی زانیاری بەرهەم</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:8px">
+        <button class="btn btn-primary" onclick="downloadQR()">⬇️ داگرتن</button>
+        <button class="btn btn-outline" onclick="closeModal('qrModal')">داخستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Product Modal ========== -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="productModalTitle">➕ زیادکردنی بەرهەمی نوێ</h2>
+        <button class="modal-close" onclick="closeModal('productModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="productForm" onsubmit="saveProduct(event)">
+          <input type="hidden" id="productId">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>ناوی بەرهەم <span class="required">*</span></label>
+              <input type="text" id="productName" required placeholder="ناوی بەرهەم بنووسە...">
+            </div>
+            <div class="form-group">
+              <label>جۆر</label>
+              <select id="productCategory">
+                <option value="">هەڵبژێرە...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>مۆدێل</label>
+              <input type="text" id="productModel" placeholder="Corolla 2020...">
+            </div>
+            <div class="form-group">
+              <label>ژمارەی پارچە</label>
+              <input type="text" id="productPartNumber" placeholder="AF-TY-001" style="direction:ltr;text-align:right">
+            </div>
+            <div class="form-group">
+              <label>بارکۆد</label>
+              <input type="text" id="productBarcode" placeholder="بارکۆد" style="direction:ltr;text-align:right">
+            </div>
+            <div class="form-group">
+              <label>دانە لە مەخزەن</label>
+              <input type="number" id="productQuantity" value="0" min="0">
+            </div>
+            <!-- Live Dollar to Dinar Automatic Conversion Card -->
+            <div class="form-group full-width price-calc-card">
+              <div class="price-calc-header">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:18px">💱</span>
+                  <strong>حسابکردنی ڕاستەوخۆی نرخی دۆلار و دینار</strong>
+                </div>
+                <div style="font-size:12px;color:var(--text-light)">
+                  سەرفی ١٠٠$ = <strong id="modalRateDisplay" style="color:var(--secondary-dark)">150,000</strong> دینار
+                  <a href="https://alanchand.com/en/exchange-rates/usd-iqd" target="_blank" style="margin-right:6px;color:var(--primary);text-decoration:none;font-weight:700" title="کردنەوەی ماڵپەڕی ئالان چەند">(ئالان چەند)</a>
+                </div>
+              </div>
+
+              <div class="price-calc-grid">
+                <!-- Purchase Price Group -->
+                <div class="price-box">
+                  <div class="price-box-title">📥 نرخی کڕین (تێچوو)</div>
+                  <div class="price-inputs">
+                    <div>
+                      <label>بە دۆلار ($)</label>
+                      <div class="input-with-symbol">
+                        <input type="number" id="productBuyPriceUSD" value="0" min="0" step="0.25" placeholder="0.00" oninput="convertPrice('buy', 'usd')">
+                        <span class="symbol">$</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label>بە دینار (IQD)</label>
+                      <div class="input-with-symbol">
+                        <input type="number" id="productBuyPriceIQD" value="0" min="0" step="250" placeholder="0" oninput="convertPrice('buy', 'iqd')">
+                        <span class="symbol">د.ع</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sale Price Group -->
+                <div class="price-box">
+                  <div class="price-box-title">📤 نرخی فرۆشتن</div>
+                  <div class="price-inputs">
+                    <div>
+                      <label>بە دۆلار ($)</label>
+                      <div class="input-with-symbol">
+                        <input type="number" id="productSellPriceUSD" value="0" min="0" step="0.25" placeholder="0.00" oninput="convertPrice('sell', 'usd')">
+                        <span class="symbol">$</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label>بە دینار (IQD)</label>
+                      <div class="input-with-symbol">
+                        <input type="number" id="productSellPriceIQD" value="0" min="0" step="250" placeholder="0" oninput="convertPrice('sell', 'iqd')">
+                        <span class="symbol">د.ع</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Profit Margin Preview -->
+              <div class="profit-preview" id="profitPreview">
+                <span>قازانجی پێشبینیکراو بۆ هەر دانەیەک:</span>
+                <strong id="profitPreviewIQD" style="color:var(--secondary-dark);font-size:14px">0 IQD</strong>
+                <span style="color:var(--text-light);font-size:12px">(<span id="profitPreviewUSD">$0.00</span>)</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>کەمترین ستۆک</label>
+              <input type="number" id="productMinStock" value="5" min="0">
+            </div>
+            <div class="form-group">
+              <label>شوێنی مەخزەن</label>
+              <input type="text" id="productLocation" placeholder="A-1-01">
+            </div>
+            <div class="form-group">
+              <label for="productExpiryDate">بەرواری بەسەرچوون (ئەگەر هەیە)</label>
+              <input type="date" id="productExpiryDate">
+            </div>
+            <div class="form-group full-width">
+              <label>وەسف</label>
+              <textarea id="productDescription" placeholder="وەسفی بەرهەم..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between">
+        <button class="btn btn-primary" onclick="document.getElementById('productForm').requestSubmit()">💾 پاشەکەوتکردن</button>
+        <button class="btn btn-outline" onclick="closeModal('productModal')">تەواو / داخستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Category Modal ========== -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal" style="max-width:500px">
+      <div class="modal-header">
+        <h2 id="categoryModalTitle">➕ زیادکردنی جۆری نوێ</h2>
+        <button class="modal-close" onclick="closeModal('categoryModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="categoryForm" onsubmit="saveCategory(event)">
+          <input type="hidden" id="categoryId">
+          <div class="form-group">
+            <label>ناوی جۆر <span class="required">*</span></label>
+            <input type="text" id="categoryName" required placeholder="ناوی جۆر بنووسە...">
+          </div>
+          <div class="form-group" style="margin-top:16px">
+            <label>وەسف</label>
+            <textarea id="categoryDescription" placeholder="وەسفی جۆر..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="document.getElementById('categoryForm').requestSubmit()">💾 پاشەکەوتکردن</button>
+        <button class="btn btn-outline" onclick="closeModal('categoryModal')">❌ هەڵوەشاندنەوە</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Company Modal ========== -->
+  <div class="modal-overlay" id="supplierModal">
+    <div class="modal" style="max-width:500px">
+      <div class="modal-header">
+        <h2 id="supplierModalTitle">➕ زیادکردنی کۆمپانیای نوێ</h2>
+        <button class="modal-close" onclick="closeModal('supplierModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="supplierForm" onsubmit="saveSupplier(event)">
+          <input type="hidden" id="supplierId">
+          <div class="form-group">
+            <label>ناوی کۆمپانیا <span class="required">*</span></label>
+            <input type="text" id="supplierName" required placeholder="ناوی کۆمپانیا بنووسە...">
+          </div>
+          <div class="form-group" style="margin-top:16px">
+            <label>مۆبایل</label>
+            <input type="text" id="supplierPhone" placeholder="0750-XXX-XXXX" style="direction:ltr;text-align:right">
+          </div>
+          <div class="form-group" style="margin-top:16px">
+            <label>ناونیشان</label>
+            <textarea id="supplierAddress" placeholder="ناونیشان..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="document.getElementById('supplierForm').requestSubmit()">💾 پاشەکەوتکردن</button>
+        <button class="btn btn-outline" onclick="closeModal('supplierModal')">❌ هەڵوەشاندنەوە</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Stock Alert Report Modal ========== -->
+  <div class="modal-overlay" id="stockAlertModal">
+    <div class="modal modal-report">
+      <div class="modal-header" style="background: linear-gradient(135deg, #c5221f, #ea4335);">
+        <h2>📑 ڕاپۆرتی ئاگاداری مەخزەن (بەرهەمە کەمبوو و نەماوەکان)</h2>
+        <button class="modal-close" onclick="closeModal('stockAlertModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-report-banner">
+          <div style="font-size: 28px;">⚠️</div>
+          <div>
+            <strong>ئاگاداری بەپەلە بۆ بەڕێوەبەری مەخزەن:</strong>
+            ئەم بەرهەمانەی خوارەوە بەتەواوی نەماون لە مەخزەن (ستۆک سفرە) یان گەیشتوونەتە ئاستی دیاریکراوی کەمی مەخزەن (کەمترین ستۆک). پێویستە دەستبەجێ پەیوەندی بە کۆمپانیاکانەوە بکرێت بۆ داواکردنەوەیان!
+          </div>
+        </div>
+
+        <div class="alert-filter-tabs">
+          <button class="alert-filter-btn active" id="btnAlertAll" onclick="filterAlertReport('all')">
+            📋 هەموو ئاگادارییەکان (<span id="alertCountAll">0</span>)
+          </button>
+          <button class="alert-filter-btn" id="btnAlertOut" onclick="filterAlertReport('out')">
+            🚫 نەماوە لە مەخزەن (<span id="alertCountOut">0</span>)
+          </button>
+          <button class="alert-filter-btn" id="btnAlertLow" onclick="filterAlertReport('low')">
+            ⚠️ لە کەمی دایە (<span id="alertCountLow">0</span>)
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table id="stockAlertTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>بەرهەم</th>
+                <th>ژمارەی پارچە</th>
+                <th>جۆر</th>
+                <th>ماوە لە مەخزەن</th>
+                <th>کەمترین ستۆک</th>
+                <th>دۆخی مەترسی</th>
+                <th>نرخی کڕین (دینار)</th>
+                <th>شوێن</th>
+                <th>کردار</th>
+              </tr>
+            </thead>
+            <tbody id="stockAlertTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-outline" onclick="printStockAlertReport()">
+          🖨️ چاپکردنی ئەم ڕاپۆرتە
+        </button>
+        <button class="btn btn-primary" onclick="closeModal('stockAlertModal')">
+          تەواو / داخستن
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Delete Confirm Modal ========== -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header" style="background:linear-gradient(135deg, var(--danger), #f44336)">
+        <h2>⚠️ دڵنیایت؟</h2>
+        <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;padding:32px">
+        <div style="font-size:48px;margin-bottom:16px">🗑️</div>
+        <p style="font-size:16px;color:var(--text)" id="deleteMessage">ئایا دڵنیای لە سڕینەوەی ئەم بابەتە؟</p>
+        <p style="font-size:13px;color:var(--text-lighter);margin-top:8px">ئەم کردارە ناگەڕێتەوە</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center">
+        <button class="btn btn-danger" id="confirmDeleteBtn">🗑️ سڕینەوە</button>
+        <button class="btn btn-outline" onclick="closeModal('deleteModal')">❌ نەخێر</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Quick Currency Converter Modal ========== -->
+  <div class="modal-overlay" id="quickConverterModal">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header" style="background:linear-gradient(135deg, var(--secondary), #2d8f47)">
+        <h2>🧮 حاسیبەی خێرای دۆلار بۆ دینار</h2>
+        <button class="modal-close" onclick="closeModal('quickConverterModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:24px">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px;border-radius:8px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;font-size:13px;color:#166534">نرخی سەرفی ئێستا (١٠٠$):</span>
+          <span style="font-weight:800;font-size:15px;color:#15803d" id="quickRateDisplay">150,000 دینار</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-weight:700">بڕی پارە بە دۆلار ($) بنووسە؛ دینار خۆکارانە دەردەچێت:</label>
+          <div class="input-with-symbol">
+            <input type="number" id="calcInputUSD" placeholder="بڕ بە دۆلار..." step="0.01" min="0" oninput="runQuickConverter('usd')" style="font-size:16px;padding:12px 14px 12px 34px">
+            <span class="symbol" style="font-size:16px">$</span>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin:8px 0;font-size:20px;color:var(--text-lighter)">
+          ⇅
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:700">بڕی پارە بە دینار (IQD):</label>
+          <div class="input-with-symbol">
+            <input type="number" id="calcInputIQD" placeholder="بڕ بە دینار..." step="1" min="0" oninput="runQuickConverter('iqd')" style="font-size:16px;padding:12px 14px 12px 38px">
+            <span class="symbol" style="font-size:14px">د.ع</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;text-align:center;font-size:12px;color:var(--text-light);background:#f8fafc;padding:8px;border-radius:6px;border:1px dashed var(--border)">
+          سەرچاوەی بۆرسە: <a href="https://alanchand.com/en/exchange-rates/usd-iqd" target="_blank" style="color:var(--primary);font-weight:700;text-decoration:none">alanchand.com (ئالان چەند) ↗</a>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('quickConverterModal')">داخستن</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/sales.js"></script>
+  <script src="js/pos.js"></script>
+  <script src="js/pos-launcher.js"></script>
+  <script src="js/qr.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registered:', reg.scope))
+          .catch(err => console.log('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+
+  <!-- ========== SALES PAGE (injected here) ========== -->
+  <!-- Sales page section is rendered dynamically by sales.js -->
+
+  <!-- Add Sale Modal -->
+  <div class="modal-overlay" id="customerPaymentModal">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header">
+        <h3 id="customerPaymentTitle">💵 وەرگرتنی پارە لە کڕیار</h3>
+        <button class="modal-close" onclick="closeModal('customerPaymentModal')">✕</button>
+      </div>
+      <form id="customerPaymentForm" onsubmit="recordCustomerPayment(event)">
+        <div class="modal-body">
+          <input type="hidden" id="paymentCustomerId">
+          <div class="form-group"><label for="customerPaymentAmount">بڕی پارە (IQD)</label><input id="customerPaymentAmount" type="number" min="0.01" step="0.01" required inputmode="decimal"></div>
+          <div class="form-group"><label for="customerPaymentNotes">تێبینی</label><input id="customerPaymentNotes" maxlength="500"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" type="button" onclick="closeModal('customerPaymentModal')">پاشگەزبوونەوە</button>
+          <button class="btn btn-primary" type="submit">💾 تۆمارکردن</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="barcodeScannerModal" onclick="if(event.target===this){stopBarcodeScanner();closeModal('barcodeScannerModal')}">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h3>📷 سکانکردنی بارکۆد</h3>
+        <button class="modal-close" onclick="stopBarcodeScanner();closeModal('barcodeScannerModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <video id="barcodeScannerVideo" class="barcode-scanner-video" playsinline muted></video>
+        <p>کامێرا ڕووبەڕووی بارکۆدەکە بکەرەوە. ئەگەر وێبگەڕەکەت سکانکردن پشتگیری نەکرد، ژمارەی بارکۆد لە خانەی گەڕان بنووسە.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="saleReceiptPrint" class="sale-receipt-print" aria-hidden="true"></div>
+
+  <div class="modal-overlay" id="addSaleModal" onclick="if(event.target===this)closeModal('addSaleModal')">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h3>➕ تۆمارکردنی فرۆشتنی نوێ</h3>
+        <button class="modal-close" onclick="closeModal('addSaleModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>بەرهەم *</label>
+          <select id="saleProductId" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+            <option value="">-- بەرهەمێک هەڵبژێرە --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>بڕ *</label>
+          <input type="number" id="saleQuantity" min="1" value="1" placeholder="بڕی فرۆشتن" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+        </div>
+        <div class="form-group">
+          <label>نرخی یەکە (IQD) *</label>
+          <input type="number" id="saleUnitPrice" min="0" placeholder="نرخی فرۆشتن بە دینار" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+        </div>
+        <div id="saleStockHint" style="margin:-8px 0 12px;color:var(--text-light);font-size:13px"></div>
+        <div class="form-group" style="padding:10px;border-radius:8px;background:var(--bg)">
+          <label>کۆی نرخ (IQD)</label>
+          <strong id="saleTotalPreview" style="display:block;font-size:18px">0</strong>
+        </div>
+        <div class="form-group">
+          <label>ناوی کڕیار</label>
+          <input type="text" id="saleCustomerName" placeholder="ناوی کڕیار (ئارەزووی)" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+        </div>
+        <div class="form-group">
+          <label for="saleCustomerId">هەژماری کڕیار / فرۆشتنی قەرزدار</label>
+          <select id="saleCustomerId" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+            <option value="">کڕیاری نوێ / بێ کڕیار</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="salePaidAmount">پارەی وەرگیراو (IQD)</label>
+          <input type="number" id="salePaidAmount" min="0" step="0.01" value="0" inputmode="decimal" oninput="this.dataset.auto='false';updateSaleTotal()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+          <small>ماوەی قەرز: <strong id="saleDuePreview">0</strong> IQD</small>
+        </div>
+        <div class="form-group">
+          <label>تێبینی</label>
+          <textarea id="saleNotes" rows="3" placeholder="تێبینی زیادە..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('addSaleModal')">پاشگەزبوونەوە</button>
+        <button class="btn btn-primary" onclick="submitSale()">💾 تۆمارکردن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Invoice Details View -->
+  <div class="modal-overlay" id="posInvoiceDetailsModal" onclick="if(event.target===this)closeModal('posInvoiceDetailsModal')">
+    <div class="modal" style="max-width:540px">
+      <div class="modal-header">
+        <h3 id="posInvoiceDetailsTitle">🧾 وردەکاری پسوڵە</h3>
+        <button class="modal-close" onclick="closeModal('posInvoiceDetailsModal')">✕</button>
+      </div>
+      <div class="modal-body" id="posInvoiceDetailsBody">
+        <!-- populated dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('posInvoiceDetailsModal')">داخستن</button>
+        <button class="btn btn-primary" id="posInvoiceDetailsPrintBtn">🖨️ چاپی پسوڵە</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Safe Cash In / Out -->
+  <div class="modal-overlay" id="posSafeTransferModal" onclick="if(event.target===this)closeModal('posSafeTransferModal')">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h3 id="posSafeTransferTitle">🏦 جوڵەی کاش لە قاسە</h3>
+        <button class="modal-close" onclick="closeModal('posSafeTransferModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="posSafeTransferType" value="in">
+        <div class="form-group" style="margin-bottom:12px">
+          <label>بڕ بە دینار (IQD):</label>
+          <input type="number" id="posSafeTransferIqd" class="pos-filter-input" style="width:100%;font-size:16px;font-weight:700" placeholder="بڕ بە دینار...">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>بڕ بە دۆلار (USD):</label>
+          <input type="number" id="posSafeTransferUsd" class="pos-filter-input" style="width:100%;font-size:16px;font-weight:700" placeholder="بڕ بە دۆلار...">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>هۆکار / تێبینی:</label>
+          <input type="text" id="posSafeTransferNotes" class="pos-filter-input" style="width:100%" placeholder="وەسفی جوڵەکە...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('posSafeTransferModal')">داخستن</button>
+        <button class="btn btn-primary" onclick="submitSafeTransfer()">💾 تۆمارکردن لە قاسە</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add New System User -->
+  <div class="modal-overlay" id="posAddUserModal" onclick="if(event.target===this)closeModal('posAddUserModal')">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h3>👤 زیادکردنی بەکارهێنەری نوێ</h3>
+        <button class="modal-close" onclick="closeModal('posAddUserModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px">
+          <label>ناوی بەکارهێنەر (Username) *</label>
+          <input type="text" id="newUsername" class="pos-filter-input" style="width:100%" placeholder="بۆ نموونە: cashier2">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>ناوی تەواو *</label>
+          <input type="text" id="newUserFullName" class="pos-filter-input" style="width:100%" placeholder="بۆ نموونە: ئارام ئەحمەد">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>وشەی نهێنی (Password) *</label>
+          <input type="password" id="newUserPassword" class="pos-filter-input" style="width:100%" placeholder="••••••••">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>ڕۆڵ / پلەی بەکارهێنەر</label>
+          <select id="newUserRole" class="pos-filter-input" style="width:100%">
+            <option value="cashier">کاشێر (Cashier)</option>
+            <option value="manager">بەڕێوەبەری کۆگا (Manager)</option>
+            <option value="admin">ئەدمینی گشتی (Admin)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('posAddUserModal')">داخستن</button>
+        <button class="btn btn-primary" onclick="submitNewUser()">💾 زیادکردن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Installment Contract -->
+  <div class="modal-overlay" id="posAddInstallmentModal" onclick="if(event.target===this)closeModal('posAddInstallmentModal')">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <h3>➕ زیادکردنی گرێبەستی قیست</h3>
+        <button class="modal-close" onclick="closeModal('posAddInstallmentModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px"><label>ناوی کڕیار *</label><input type="text" id="instCustName" class="pos-filter-input" style="width:100%" placeholder="ناوی کڕیار..."></div>
+        <div class="form-group" style="margin-bottom:10px"><label>ژمارەی مۆبایل *</label><input type="text" id="instCustPhone" class="pos-filter-input" style="width:100%" placeholder="0750..."></div>
+        <div class="form-group" style="margin-bottom:10px"><label>کاڵا / پارچە *</label><input type="text" id="instItemName" class="pos-filter-input" style="width:100%" placeholder="ناونیشانی کاڵاکە..."></div>
+        <div class="form-group" style="margin-bottom:10px"><label>کۆی گشتی نرخ (IQD) *</label><input type="number" id="instTotalPrice" class="pos-filter-input" style="width:100%" placeholder="بۆ نموونە: 1500000" oninput="calcMonthlyInstallment()"></div>
+        <div class="form-group" style="margin-bottom:10px"><label>پێشەکی (Down Payment)</label><input type="number" id="instDownPayment" class="pos-filter-input" style="width:100%" value="300000" oninput="calcMonthlyInstallment()"></div>
+        <div class="form-group" style="margin-bottom:10px"><label>ژمارەی مانگەکان (قیستەکان)</label><input type="number" id="instMonths" class="pos-filter-input" style="width:100%" value="6" min="1" max="60" oninput="calcMonthlyInstallment()"></div>
+        <div class="form-group" style="margin-bottom:10px"><label>بڕی قیستی مانگانە:</label><strong id="instMonthlyPreview" style="display:block;font-size:18px;color:#2563eb">200,000 د.ع</strong></div>
+        <div class="form-group" style="margin-bottom:10px"><label>بەرواری یەکەم قیست</label><input type="date" id="instStartDate" class="pos-filter-input" style="width:100%"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('posAddInstallmentModal')">پاشگەزبوونەوە</button>
+        <button class="btn btn-primary" onclick="submitInstallmentContract()">💾 پەسەندکردنی گرێبەست</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pay Supplier Debt -->
+  <div class="modal-overlay" id="posSupplierPayModal" onclick="if(event.target===this)closeModal('posSupplierPayModal')">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h3>💳 دانەوەی قەرزی کۆمپانیا</h3>
+        <button class="modal-close" onclick="closeModal('posSupplierPayModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="posPaySupplierId">
+        <div style="margin-bottom:12px">کۆمپانیا: <strong id="posPaySupplierName" style="color:#1e3a8a"></strong></div>
+        <div style="margin-bottom:12px;background:#fef2f2;padding:10px;border-radius:6px;border:1px solid #fecaca">
+          <div>قەرزی ماوەی کۆمپانیا:</div>
+          <strong id="posPaySupplierDue" style="font-size:20px;color:#dc2626"></strong>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>بڕی پارەی دراو (دینار) *</label>
+          <input type="number" id="posPaySupplierAmount" class="pos-filter-input" style="width:100%;font-size:16px;font-weight:700" placeholder="بڕی پارە...">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>تێبینی</label>
+          <input type="text" id="posPaySupplierNotes" class="pos-filter-input" style="width:100%" placeholder="تێبینی..." value="دانەوەی قیست / بەشێک لە قەرز">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('posSupplierPayModal')">داخستن</button>
+        <button class="btn btn-primary" onclick="submitSupplierPayment()">💾 تۆمارکردنی پارەدان</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
